@@ -7,7 +7,7 @@ from threading import Lock
 app = Flask(__name__, static_folder='', template_folder='')
 
 # Ruta del archivo Excel
-EXCEL_PATH = r"C:\Users\Administrador\Downloads\Descargas\Base personal I&M nuevo.xlsx"
+EXCEL_PATH = "Base personal I&M nuevo.xlsx"
 HOJA_PERSONAL = "BASE"
 HOJA_ASISTENCIA = "ASISTENCIA"
 
@@ -347,4 +347,5 @@ if __name__ == '__main__':
         print(f"🌐 URL Local: http://localhost:5000")
         print(f"🌐 URL Red: http://0.0.0.0:5000")
         print("=" * 60)
+
         app.run(host='0.0.0.0', port=5000, debug=True)
