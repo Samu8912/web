@@ -1303,39 +1303,63 @@
             if (!confirm('¿Está seguro de eliminar este personal y todos sus auxiliares asociados?')) return;
 
             try {
+                // Obtener el sheetId primero
+                const metadataResponse = await gapi.client.sheets.spreadsheets.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID
+                });
+
+                const sheets = metadataResponse.result.sheets;
+                const baseSheet = sheets.find(s => s.properties.title === CONFIG.HOJA_PLAN);
+                
+                if (!baseSheet) {
+                    alert('No se encontró la hoja BASE');
+                    return;
+                }
+
+                const sheetId = baseSheet.properties.sheetId;
+
+                // Obtener datos
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
                     range: `${CONFIG.HOJA_PLAN}!A:R`,
                 });
 
-                let rows = response.result.values || [];
+                const rows = response.result.values || [];
                 
-                // Filtrar eliminando todas las filas con esa cédula (incluyendo encabezados se mantienen)
-                const filasEliminadas = rows.filter((row, idx) => {
-                    if (idx === 0) return true; // Mantener encabezados
-                    return row[0]?.toString().trim() !== cedula;
-                });
+                // Encontrar todas las filas a eliminar
+                const filasAEliminar = [];
+                for (let i = 1; i < rows.length; i++) {
+                    if (rows[i][0]?.toString().trim() === cedula) {
+                        filasAEliminar.push(i);
+                    }
+                }
 
-                console.log('Filas antes:', rows.length);
-                console.log('Filas después:', filasEliminadas.length);
-
-                if (rows.length === filasEliminadas.length) {
-                    alert('No se encontró el registro a eliminar');
+                if (filasAEliminar.length === 0) {
+                    alert('No se encontró el registro');
                     return;
                 }
 
-                // Limpiar toda la hoja primero
-                await gapi.client.sheets.spreadsheets.values.clear({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A2:R`,
-                });
+                console.log('Eliminando filas:', filasAEliminar);
 
-                // Actualizar con los datos filtrados
-                await gapi.client.sheets.spreadsheets.values.update({
+                // Crear requests para eliminar (de abajo hacia arriba para no alterar índices)
+                const requests = [];
+                for (let i = filasAEliminar.length - 1; i >= 0; i--) {
+                    requests.push({
+                        deleteDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: filasAEliminar[i],
+                                endIndex: filasAEliminar[i] + 1
+                            }
+                        }
+                    });
+                }
+
+                // Ejecutar eliminación
+                await gapi.client.sheets.spreadsheets.batchUpdate({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:R${filasEliminadas.length}`,
-                    valueInputOption: 'RAW',
-                    resource: { values: filasEliminadas }
+                    resource: { requests: requests }
                 });
 
                 alert('✅ Personal eliminado correctamente');
@@ -1343,7 +1367,7 @@
 
             } catch (error) {
                 console.error('Error completo:', error);
-                alert('Error al eliminar: ' + error.message);
+                alert('Error al eliminar: ' + (error.result?.error?.message || error.message));
             }
         }
 
