@@ -1300,15 +1300,47 @@
         async function eliminarPersonal() {
             const cedula = this.dataset.cedula;
             
+            console.log('=== INICIANDO ELIMINACIÓN ===');
+            console.log('Cédula a eliminar:', cedula);
+            
             if (!confirm('¿Está seguro de eliminar este personal y todos sus auxiliares asociados?')) return;
 
             try {
-                // Obtener el sheetId primero
+                // Obtener datos
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
+                });
+
+                const rows = response.result.values || [];
+                console.log('Total de filas leídas:', rows.length);
+                
+                // Encontrar todas las filas a eliminar
+                const filasAEliminar = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const cedulaFila = rows[i][0]?.toString().trim();
+                    console.log(`Fila ${i}: cédula="${cedulaFila}" comparando con "${cedula}"`);
+                    if (cedulaFila === cedula) {
+                        console.log(`✓ Coincidencia encontrada en fila ${i}`);
+                        filasAEliminar.push(i);
+                    }
+                }
+
+                console.log('Filas a eliminar:', filasAEliminar);
+
+                if (filasAEliminar.length === 0) {
+                    alert('No se encontró el registro. Revisa la consola para ver los datos.');
+                    return;
+                }
+
+                // Obtener el sheetId
                 const metadataResponse = await gapi.client.sheets.spreadsheets.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID
                 });
 
                 const sheets = metadataResponse.result.sheets;
+                console.log('Hojas disponibles:', sheets.map(s => s.properties.title));
+                
                 const baseSheet = sheets.find(s => s.properties.title === CONFIG.HOJA_PLAN);
                 
                 if (!baseSheet) {
@@ -1317,56 +1349,40 @@
                 }
 
                 const sheetId = baseSheet.properties.sheetId;
+                console.log('SheetId de BASE:', sheetId);
 
-                // Obtener datos
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:R`,
-                });
-
-                const rows = response.result.values || [];
-                
-                // Encontrar todas las filas a eliminar
-                const filasAEliminar = [];
-                for (let i = 1; i < rows.length; i++) {
-                    if (rows[i][0]?.toString().trim() === cedula) {
-                        filasAEliminar.push(i);
-                    }
-                }
-
-                if (filasAEliminar.length === 0) {
-                    alert('No se encontró el registro');
-                    return;
-                }
-
-                console.log('Eliminando filas:', filasAEliminar);
-
-                // Crear requests para eliminar (de abajo hacia arriba para no alterar índices)
+                // Crear requests para eliminar (de abajo hacia arriba)
                 const requests = [];
                 for (let i = filasAEliminar.length - 1; i >= 0; i--) {
+                    const filaIndex = filasAEliminar[i];
+                    console.log(`Preparando eliminación de fila ${filaIndex}`);
                     requests.push({
                         deleteDimension: {
                             range: {
                                 sheetId: sheetId,
                                 dimension: 'ROWS',
-                                startIndex: filasAEliminar[i],
-                                endIndex: filasAEliminar[i] + 1
+                                startIndex: filaIndex,
+                                endIndex: filaIndex + 1
                             }
                         }
                     });
                 }
 
+                console.log('Requests a ejecutar:', JSON.stringify(requests, null, 2));
+
                 // Ejecutar eliminación
-                await gapi.client.sheets.spreadsheets.batchUpdate({
+                const deleteResponse = await gapi.client.sheets.spreadsheets.batchUpdate({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
                     resource: { requests: requests }
                 });
 
+                console.log('Respuesta de eliminación:', deleteResponse);
                 alert('✅ Personal eliminado correctamente');
                 await cargarPlanPadrino();
 
             } catch (error) {
                 console.error('Error completo:', error);
+                console.error('Error detallado:', JSON.stringify(error, null, 2));
                 alert('Error al eliminar: ' + (error.result?.error?.message || error.message));
             }
         }
