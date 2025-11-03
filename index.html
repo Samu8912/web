@@ -667,12 +667,12 @@
             try {
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:K`,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
                 });
 
                 const rows = response.result.values || [];
                 if (rows.length === 0) {
-                    alert('La hoja BASE está vacía. Por favor, asegúrate de que tenga los datos con estos encabezados: CEDULA, NOMBRE TECNICO, CARGO, CARPETA, CIUDAD, SUPERVISOR, CEDULA_AUXILIAR, NOMBRE_AUXILIAR, LIDER, ANALISTA, ESTADO');
+                    alert('La hoja BASE está vacía. Por favor, asegúrate de que tenga los datos');
                     datosGlobales.planPadrino = [];
                 } else {
                     datosGlobales.planPadrino = procesarPlanPadrino(rows);
@@ -707,7 +707,7 @@
                         SUPERVISOR: row[5] || '',
                         LIDER: row[8] || '',
                         ANALISTA: row[9] || '',
-                        ESTADO: row[10] || 'ACTIVO',
+                        ESTADO: row[17] || 'ACTIVO',
                         auxiliares: []
                     });
                 }
@@ -1066,20 +1066,24 @@
 
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:K`,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
                 });
 
                 const rows = response.result.values || [];
                 
                 for (let i = 1; i < rows.length; i++) {
                     if (rows[i][0] === cedula) {
-                        rows[i][10] = nuevoEstado;
+                        // Asegurar que el array tenga 18 elementos
+                        while (rows[i].length < 18) {
+                            rows[i].push('');
+                        }
+                        rows[i][17] = nuevoEstado; // Columna R (índice 17)
                     }
                 }
 
                 await gapi.client.sheets.spreadsheets.values.update({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:K${rows.length}`,
+                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
                     valueInputOption: 'RAW',
                     resource: { values: rows }
                 });
@@ -1244,7 +1248,7 @@
                 // Obtener datos actuales
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:K`,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
                 });
 
                 let rows = response.result.values || [];
@@ -1254,19 +1258,31 @@
                     rows = rows.filter((row, idx) => idx === 0 || row[0] !== cedulaOriginal);
                 }
 
-                // Agregar nuevos registros (ESTADO por defecto ACTIVO)
+                // Agregar nuevos registros
                 if (auxiliares.length === 0) {
-                    rows.push([cedula, nombre, cargo, carpeta, ciudad, supervisor, '', '', lider, analista, 'ACTIVO']);
+                    const newRow = [cedula, nombre, cargo, carpeta, ciudad, supervisor, '', '', lider, analista];
+                    // Rellenar hasta columna R (índice 17)
+                    while (newRow.length < 18) {
+                        newRow.push('');
+                    }
+                    newRow[17] = 'ACTIVO'; // Columna R
+                    rows.push(newRow);
                 } else {
                     auxiliares.forEach(aux => {
-                        rows.push([cedula, nombre, cargo, carpeta, ciudad, supervisor, aux.cedula, aux.nombre, lider, analista, 'ACTIVO']);
+                        const newRow = [cedula, nombre, cargo, carpeta, ciudad, supervisor, aux.cedula, aux.nombre, lider, analista];
+                        // Rellenar hasta columna R (índice 17)
+                        while (newRow.length < 18) {
+                            newRow.push('');
+                        }
+                        newRow[17] = 'ACTIVO'; // Columna R
+                        rows.push(newRow);
                     });
                 }
 
                 // Actualizar hoja completa
                 await gapi.client.sheets.spreadsheets.values.update({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:K${rows.length}`,
+                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
                     valueInputOption: 'RAW',
                     resource: { values: rows }
                 });
@@ -1289,7 +1305,7 @@
             try {
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:K`,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
                 });
 
                 let rows = response.result.values || [];
@@ -1297,7 +1313,7 @@
 
                 await gapi.client.sheets.spreadsheets.values.update({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:K${rows.length}`,
+                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
                     valueInputOption: 'RAW',
                     resource: { values: rows }
                 });
