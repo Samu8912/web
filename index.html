@@ -1300,7 +1300,7 @@
         async function eliminarPersonal() {
             const cedula = this.dataset.cedula;
             
-            if (!confirm('¿Está seguro de eliminar este personal?')) return;
+            if (!confirm('¿Está seguro de eliminar este personal y todos sus auxiliares asociados?')) return;
 
             try {
                 const response = await gapi.client.sheets.spreadsheets.values.get({
@@ -1309,20 +1309,40 @@
                 });
 
                 let rows = response.result.values || [];
-                rows = rows.filter((row, idx) => idx === 0 || row[0] !== cedula);
-
-                await gapi.client.sheets.spreadsheets.values.update({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
-                    valueInputOption: 'RAW',
-                    resource: { values: rows }
+                
+                // Filtrar eliminando todas las filas con esa cédula (incluyendo encabezados se mantienen)
+                const filasEliminadas = rows.filter((row, idx) => {
+                    if (idx === 0) return true; // Mantener encabezados
+                    return row[0]?.toString().trim() !== cedula;
                 });
 
-                alert('✅ Personal eliminado');
+                console.log('Filas antes:', rows.length);
+                console.log('Filas después:', filasEliminadas.length);
+
+                if (rows.length === filasEliminadas.length) {
+                    alert('No se encontró el registro a eliminar');
+                    return;
+                }
+
+                // Limpiar toda la hoja primero
+                await gapi.client.sheets.spreadsheets.values.clear({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A2:R`,
+                });
+
+                // Actualizar con los datos filtrados
+                await gapi.client.sheets.spreadsheets.values.update({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A1:R${filasEliminadas.length}`,
+                    valueInputOption: 'RAW',
+                    resource: { values: filasEliminadas }
+                });
+
+                alert('✅ Personal eliminado correctamente');
                 await cargarPlanPadrino();
 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error completo:', error);
                 alert('Error al eliminar: ' + error.message);
             }
         }
