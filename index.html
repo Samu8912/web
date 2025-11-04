@@ -146,29 +146,50 @@
 <body>
     <div class="container-fluid">
         <!-- Header -->
-        <div class="header-section">
+        <div class="header-section" id="header-principal" style="display:none;">
             <h1 class="text-center mb-3">📋 Sistema de Asistencia y Gestión de Personal</h1>
             <h5 class="text-center text-muted">Conectar TV</h5>
             <p class="text-center text-muted mb-0" id="fecha-actual"></p>
+            <p class="text-center mb-3"><span class="badge bg-primary" id="usuario-rol"></span></p>
             <div class="text-center mt-3">
                 <button id="btnAutorizar" class="btn btn-primary btn-lg">🔐 Autorizar Google Sheets</button>
                 <button id="btnCerrarSesion" class="btn btn-secondary" style="display:none;">🚪 Cerrar Sesión</button>
+                <button id="btnCerrarSesionUsuario" class="btn btn-danger" style="display:none;">👤 Cerrar Sesión Usuario</button>
+            </div>
+        </div>
+
+        <!-- Login -->
+        <div class="header-section" id="login-section">
+            <h1 class="text-center mb-4">🔐 Iniciar Sesión</h1>
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Usuario:</label>
+                        <input type="text" class="form-control" id="login-usuario" placeholder="Ingrese usuario">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contraseña:</label>
+                        <input type="password" class="form-control" id="login-password" placeholder="Ingrese contraseña">
+                    </div>
+                    <button class="btn btn-primary w-100 btn-lg" id="btnLogin">Iniciar Sesión</button>
+                    <div class="alert alert-danger mt-3" id="login-error" style="display:none;"></div>
+                </div>
             </div>
         </div>
 
         <!-- Tabs -->
-        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist" style="display:none;">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="asistencia-tab" data-bs-toggle="tab" data-bs-target="#asistencia" type="button">
                     ✅ Asistencia Diaria
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item" role="presentation" id="tab-plan">
                 <button class="nav-link" id="plan-tab" data-bs-toggle="tab" data-bs-target="#plan-padrino" type="button">
                     👥 Base de Personal
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item" role="presentation" id="tab-valores">
                 <button class="nav-link" id="valores-tab" data-bs-toggle="tab" data-bs-target="#valores" type="button">
                     ⚙️ Valores Permitidos
                 </button>
@@ -176,7 +197,7 @@
         </ul>
 
         <!-- Tab Content -->
-        <div class="tab-content" id="mainTabsContent">
+        <div class="tab-content" id="mainTabsContent" style="display:none;">
             <!-- ASISTENCIA -->
             <div class="tab-pane fade show active" id="asistencia" role="tabpanel">
                 <!-- Selector de Fecha -->
@@ -300,7 +321,7 @@
             <!-- PLAN PADRINO -->
             <div class="tab-pane fade" id="plan-padrino" role="tabpanel">
                 <!-- Botón Agregar -->
-                <div class="section-card">
+                <div class="section-card" id="btn-agregar-personal-container">
                     <button id="btnAgregarPersonal" class="btn btn-success btn-lg">➕ Agregar Personal</button>
                 </div>
 
@@ -592,6 +613,21 @@
         let gisInited = false;
         let tokenClient;
         let datosGlobales = { planPadrino: [], asistencia: [], valores: {} };
+        let usuarioActual = null;
+
+        // Credenciales de usuarios
+        const USUARIOS = {
+            analista: {
+                usuario: 'GestionLider',
+                password: '4658*',
+                rol: 'ANALISTA'
+            },
+            supervisor: {
+                usuario: 'GestionAsistencia',
+                password: '4658*',
+                rol: 'SUPERVISOR'
+            }
+        };
 
         // Inicializar fecha actual
         const hoy = new Date();
@@ -601,6 +637,81 @@
         // Modales
         const modalRegistrarAsistencia = new bootstrap.Modal(document.getElementById('modalRegistrarAsistencia'));
         const modalPersonal = new bootstrap.Modal(document.getElementById('modalPersonal'));
+
+        // Login
+        document.getElementById('btnLogin').addEventListener('click', function() {
+            const usuario = document.getElementById('login-usuario').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.style.display = 'none';
+
+            // Validar credenciales
+            let usuarioValido = null;
+            for (const key in USUARIOS) {
+                if (USUARIOS[key].usuario === usuario && USUARIOS[key].password === password) {
+                    usuarioValido = USUARIOS[key];
+                    break;
+                }
+            }
+
+            if (!usuarioValido) {
+                errorDiv.textContent = 'Usuario o contraseña incorrectos';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Login exitoso
+            usuarioActual = usuarioValido;
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('header-principal').style.display = 'block';
+            document.getElementById('mainTabs').style.display = 'flex';
+            document.getElementById('mainTabsContent').style.display = 'block';
+            document.getElementById('usuario-rol').textContent = `👤 ${usuarioValido.rol}`;
+            document.getElementById('btnCerrarSesionUsuario').style.display = 'inline-block';
+
+            // Configurar permisos según rol
+            configurarPermisos();
+
+            // Limpiar campos
+            document.getElementById('login-usuario').value = '';
+            document.getElementById('login-password').value = '';
+        });
+
+        // Permitir login con Enter
+        document.getElementById('login-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('btnLogin').click();
+            }
+        });
+
+        // Cerrar sesión de usuario
+        document.getElementById('btnCerrarSesionUsuario').addEventListener('click', function() {
+            usuarioActual = null;
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('header-principal').style.display = 'none';
+            document.getElementById('mainTabs').style.display = 'none';
+            document.getElementById('mainTabsContent').style.display = 'none';
+            document.getElementById('btnCerrarSesionUsuario').style.display = 'none';
+            
+            // Cerrar sesión de Google también
+            handleSignoutClick();
+        });
+
+        function configurarPermisos() {
+            if (usuarioActual.rol === 'SUPERVISOR') {
+                // Ocultar tabs que no puede usar
+                document.getElementById('tab-plan').style.display = 'none';
+                document.getElementById('tab-valores').style.display = 'none';
+                
+                // Asegurar que esté en Asistencia
+                document.getElementById('asistencia-tab').click();
+            } else {
+                // Mostrar todo para ANALISTA
+                document.getElementById('tab-plan').style.display = 'block';
+                document.getElementById('tab-valores').style.display = 'block';
+            }
+        }
 
         // Inicializar GAPI
         function gapiLoaded() {
@@ -742,6 +853,12 @@
                     ? p.auxiliares.map(a => `${a.nombre} (${a.cedula})`).join('<br>')
                     : '<em class="text-muted">Sin auxiliares</em>';
 
+                // Botones solo para ANALISTA
+                const botonesAccion = usuarioActual && usuarioActual.rol === 'ANALISTA' 
+                    ? `<button class="btn btn-sm btn-primary btn-editar-personal mt-1" data-cedula="${p.CEDULA}">✏️ Editar</button>
+                       <button class="btn btn-sm btn-danger btn-eliminar-personal mt-1" data-cedula="${p.CEDULA}">🗑️ Eliminar</button>`
+                    : '<em class="text-muted">Sin permisos</em>';
+
                 tr.innerHTML = `
                     <td>${p.CEDULA}</td>
                     <td>${p.NOMBRE}</td>
@@ -753,19 +870,21 @@
                     <td>${auxText}</td>
                     <td>
                         <span class="badge ${p.ESTADO === 'ACTIVO' ? 'bg-success' : 'bg-secondary'}">${p.ESTADO}</span><br>
-                        <button class="btn btn-sm btn-primary btn-editar-personal mt-1" data-cedula="${p.CEDULA}">✏️ Editar</button>
-                        <button class="btn btn-sm btn-danger btn-eliminar-personal mt-1" data-cedula="${p.CEDULA}">🗑️ Eliminar</button>
+                        ${botonesAccion}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            document.querySelectorAll('.btn-editar-personal').forEach(btn => {
-                btn.addEventListener('click', editarPersonal);
-            });
-            document.querySelectorAll('.btn-eliminar-personal').forEach(btn => {
-                btn.addEventListener('click', eliminarPersonal);
-            });
+            // Solo agregar event listeners para ANALISTA
+            if (usuarioActual && usuarioActual.rol === 'ANALISTA') {
+                document.querySelectorAll('.btn-editar-personal').forEach(btn => {
+                    btn.addEventListener('click', editarPersonal);
+                });
+                document.querySelectorAll('.btn-eliminar-personal').forEach(btn => {
+                    btn.addEventListener('click', eliminarPersonal);
+                });
+            }
         }
 
         // Cargar Asistencia
@@ -1095,6 +1214,12 @@
 
         // Modal Personal
         document.getElementById('btnAgregarPersonal').addEventListener('click', function() {
+            // Solo ANALISTA puede agregar
+            if (!usuarioActual || usuarioActual.rol !== 'ANALISTA') {
+                alert('No tienes permisos para realizar esta acción');
+                return;
+            }
+
             cargarDropdownsPersonal();
             
             document.getElementById('tituloModalPersonal').textContent = 'Agregar Personal';
@@ -1130,6 +1255,12 @@
         });
 
         function editarPersonal() {
+            // Solo ANALISTA puede editar
+            if (!usuarioActual || usuarioActual.rol !== 'ANALISTA') {
+                alert('No tienes permisos para realizar esta acción');
+                return;
+            }
+
             const cedula = this.dataset.cedula;
             const persona = datosGlobales.planPadrino.find(p => p.CEDULA === cedula);
             
@@ -1298,6 +1429,12 @@
         });
 
         async function eliminarPersonal() {
+            // Solo ANALISTA puede eliminar
+            if (!usuarioActual || usuarioActual.rol !== 'ANALISTA') {
+                alert('No tienes permisos para realizar esta acción');
+                return;
+            }
+
             const cedula = this.dataset.cedula;
             
             console.log('=== INICIANDO ELIMINACIÓN ===');
@@ -1478,43 +1615,56 @@
         }
 
         function renderizarValores() {
+            const puedeEditar = usuarioActual && usuarioActual.rol === 'ANALISTA';
+            
             // Carpetas
             const listaCarpetas = document.getElementById('lista-carpetas');
             listaCarpetas.innerHTML = '';
             datosGlobales.valores.CARPETA.forEach(v => {
-                listaCarpetas.innerHTML += `<span class="valor-badge">${v}<button onclick="eliminarValor('CARPETA', '${v}')">×</button></span>`;
+                const btnEliminar = puedeEditar ? `<button onclick="eliminarValor('CARPETA', '${v}')">×</button>` : '';
+                listaCarpetas.innerHTML += `<span class="valor-badge">${v}${btnEliminar}</span>`;
             });
 
             // Ciudades
             const listaCiudades = document.getElementById('lista-ciudades');
             listaCiudades.innerHTML = '';
             datosGlobales.valores.CIUDAD.forEach(v => {
-                listaCiudades.innerHTML += `<span class="valor-badge">${v}<button onclick="eliminarValor('CIUDAD', '${v}')">×</button></span>`;
+                const btnEliminar = puedeEditar ? `<button onclick="eliminarValor('CIUDAD', '${v}')">×</button>` : '';
+                listaCiudades.innerHTML += `<span class="valor-badge">${v}${btnEliminar}</span>`;
             });
 
             // Supervisores
             const listaSupervisores = document.getElementById('lista-supervisores');
             listaSupervisores.innerHTML = '';
             datosGlobales.valores.SUPERVISOR.forEach(v => {
-                listaSupervisores.innerHTML += `<span class="valor-badge">${v}<button onclick="eliminarValor('SUPERVISOR', '${v}')">×</button></span>`;
+                const btnEliminar = puedeEditar ? `<button onclick="eliminarValor('SUPERVISOR', '${v}')">×</button>` : '';
+                listaSupervisores.innerHTML += `<span class="valor-badge">${v}${btnEliminar}</span>`;
             });
 
             // Líderes
             const listaLideres = document.getElementById('lista-lideres');
             listaLideres.innerHTML = '';
             datosGlobales.valores.LIDER.forEach(v => {
-                listaLideres.innerHTML += `<span class="valor-badge">${v}<button onclick="eliminarValor('LIDER', '${v}')">×</button></span>`;
+                const btnEliminar = puedeEditar ? `<button onclick="eliminarValor('LIDER', '${v}')">×</button>` : '';
+                listaLideres.innerHTML += `<span class="valor-badge">${v}${btnEliminar}</span>`;
             });
 
             // Analistas
             const listaAnalistas = document.getElementById('lista-analistas');
             listaAnalistas.innerHTML = '';
             datosGlobales.valores.ANALISTA.forEach(v => {
-                listaAnalistas.innerHTML += `<span class="valor-badge">${v}<button onclick="eliminarValor('ANALISTA', '${v}')">×</button></span>`;
+                const btnEliminar = puedeEditar ? `<button onclick="eliminarValor('ANALISTA', '${v}')">×</button>` : '';
+                listaAnalistas.innerHTML += `<span class="valor-badge">${v}${btnEliminar}</span>`;
             });
         }
 
         async function agregarValor(tipo) {
+            // Solo ANALISTA puede agregar valores
+            if (!usuarioActual || usuarioActual.rol !== 'ANALISTA') {
+                alert('No tienes permisos para realizar esta acción');
+                return;
+            }
+
             const inputs = {
                 'CARPETA': 'nuevaCarpeta',
                 'CIUDAD': 'nuevaCiudad',
@@ -1548,6 +1698,12 @@
         }
 
         async function eliminarValor(tipo, valor) {
+            // Solo ANALISTA puede eliminar valores
+            if (!usuarioActual || usuarioActual.rol !== 'ANALISTA') {
+                alert('No tienes permisos para realizar esta acción');
+                return;
+            }
+
             if (!confirm(`¿Eliminar "${valor}"?`)) return;
 
             try {
