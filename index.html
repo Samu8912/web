@@ -209,6 +209,7 @@
                         </div>
                         <div class="col-md-8 text-end">
                             <button id="btnCargarAsistencia" class="btn btn-primary">🔄 Cargar Asistencia</button>
+                            <button id="btnExportarAsistencia" class="btn btn-success">📥 Exportar a Excel</button>
                         </div>
                     </div>
                 </div>
@@ -323,6 +324,7 @@
                 <!-- Botón Agregar -->
                 <div class="section-card" id="btn-agregar-personal-container">
                     <button id="btnAgregarPersonal" class="btn btn-success btn-lg">➕ Agregar Personal</button>
+                    <button id="btnExportarPlan" class="btn btn-primary btn-lg">📥 Exportar a Excel</button>
                 </div>
 
                 <!-- Filtros Plan Padrino -->
@@ -596,6 +598,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Configuración
         const CONFIG = {
@@ -1560,6 +1563,79 @@
 
             selectCiu.innerHTML = '<option value="">🏙️ Todas las ciudades</option>';
             ciudades.forEach(c => selectCiu.innerHTML += `<option value="${c}">${c}</option>`);
+        }
+
+        // ========== EXPORTAR A EXCEL ==========
+        document.getElementById('btnExportarAsistencia').addEventListener('click', function() {
+            exportarTablaAExcel('tablaAsistencia', 'Asistencia');
+        });
+
+        document.getElementById('btnExportarPlan').addEventListener('click', function() {
+            exportarTablaAExcel('tablaPlanPadrino', 'Base_Personal');
+        });
+
+        function exportarTablaAExcel(idTabla, nombreArchivo) {
+            try {
+                const tabla = document.getElementById(idTabla);
+                const filas = tabla.querySelectorAll('tbody tr');
+                
+                // Verificar si hay filas visibles
+                const filasVisibles = Array.from(filas).filter(fila => fila.style.display !== 'none');
+                
+                if (filasVisibles.length === 0) {
+                    alert('No hay datos para exportar');
+                    return;
+                }
+
+                // Crear datos para Excel
+                const datos = [];
+                
+                // Obtener encabezados
+                const encabezados = [];
+                tabla.querySelectorAll('thead th').forEach(th => {
+                    encabezados.push(th.textContent.trim());
+                });
+                datos.push(encabezados);
+
+                // Obtener filas visibles
+                filasVisibles.forEach(fila => {
+                    const filaData = [];
+                    fila.querySelectorAll('td').forEach((td, index) => {
+                        // No incluir la columna de Acciones (última columna)
+                        if (index < encabezados.length - 1) {
+                            // Extraer solo texto, sin HTML
+                            let texto = td.textContent.trim();
+                            // Limpiar espacios múltiples y saltos de línea
+                            texto = texto.replace(/\s+/g, ' ');
+                            filaData.push(texto);
+                        }
+                    });
+                    datos.push(filaData);
+                });
+
+                // Crear libro de Excel
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(datos);
+
+                // Ajustar ancho de columnas
+                const colWidths = encabezados.map(() => ({wch: 15}));
+                ws['!cols'] = colWidths;
+
+                // Agregar hoja al libro
+                XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+
+                // Generar nombre de archivo con fecha
+                const fecha = new Date().toISOString().split('T')[0];
+                const nombreFinal = `${nombreArchivo}_${fecha}.xlsx`;
+
+                // Descargar archivo
+                XLSX.writeFile(wb, nombreFinal);
+
+                alert(`✅ Archivo exportado: ${nombreFinal}`);
+            } catch (error) {
+                console.error('Error al exportar:', error);
+                alert('Error al exportar: ' + error.message);
+            }
         }
 
         // ========== VALORES PERMITIDOS ==========
