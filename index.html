@@ -689,6 +689,13 @@
         let datosGlobales = { planPadrino: [], asistencia: [], valores: {} };
         let usuarioActual = null;
         let intervaloActualizacion = null;
+        let estadoFiltrosAsistencia = {
+            busqueda: '',
+            supervisor: '',
+            ciudad: '',
+            cargo: '',
+            estado: ''
+        };
 
         // Credenciales de usuarios
         const USUARIOS = {
@@ -993,7 +1000,8 @@
                         // Si está en la vista de asistencia y hay fecha seleccionada
                         const fecha = document.getElementById('fechaAsistencia').value;
                         if (fecha && document.getElementById('asistencia').classList.contains('active')) {
-                            await cargarAsistencia();
+                            // Cargar en modo silencioso (sin alertas, manteniendo filtros)
+                            await cargarAsistencia(true);
                         }
                     }
                 } catch (error) {
@@ -1119,11 +1127,11 @@
         // Cargar Asistencia
         document.getElementById('fechaAsistencia').addEventListener('change', cargarAsistencia);
 
-        async function cargarAsistencia() {
+        async function cargarAsistencia(silencioso = false) {
             try {
                 const fecha = document.getElementById('fechaAsistencia').value;
                 if (!fecha) {
-                    alert('Seleccione una fecha');
+                    if (!silencioso) alert('Seleccione una fecha');
                     return;
                 }
 
@@ -1138,7 +1146,7 @@
                 });
 
                 const rows = response.result.values || [];
-                if (rows.length === 0) {
+                if (rows.length === 0 && !silencioso) {
                     // Crear encabezados si no existen - LIMPIAR PRIMERO TODO
                     await gapi.client.sheets.spreadsheets.values.clear({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
@@ -1157,11 +1165,18 @@
 
                 const asistenciaHoy = procesarAsistencia(rows, fecha);
                 renderizarAsistencia(asistenciaHoy);
+                
+                // Siempre cargar las opciones de filtros
                 cargarFiltrosAsistencia();
+                
+                // Si es silencioso, restaurar valores guardados
+                if (silencioso) {
+                    restaurarFiltrosAsistencia();
+                }
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al cargar asistencia: ' + error.message);
+                if (!silencioso) alert('Error al cargar asistencia: ' + error.message);
             }
         }
 
@@ -2123,18 +2138,33 @@
         }
 
         // Filtros Asistencia
-        document.getElementById('busquedaAsist').addEventListener('input', filtrarAsistencia);
-        document.getElementById('filtroSupervisorAsist').addEventListener('change', filtrarAsistencia);
-        document.getElementById('filtroCiudadAsist').addEventListener('change', filtrarAsistencia);
-        document.getElementById('filtroCargoAsist').addEventListener('change', filtrarAsistencia);
-        document.getElementById('filtroEstadoAsist').addEventListener('change', filtrarAsistencia);
+        document.getElementById('busquedaAsist').addEventListener('input', function() {
+            estadoFiltrosAsistencia.busqueda = this.value;
+            filtrarAsistencia();
+        });
+        document.getElementById('filtroSupervisorAsist').addEventListener('change', function() {
+            estadoFiltrosAsistencia.supervisor = this.value;
+            filtrarAsistencia();
+        });
+        document.getElementById('filtroCiudadAsist').addEventListener('change', function() {
+            estadoFiltrosAsistencia.ciudad = this.value;
+            filtrarAsistencia();
+        });
+        document.getElementById('filtroCargoAsist').addEventListener('change', function() {
+            estadoFiltrosAsistencia.cargo = this.value;
+            filtrarAsistencia();
+        });
+        document.getElementById('filtroEstadoAsist').addEventListener('change', function() {
+            estadoFiltrosAsistencia.estado = this.value;
+            filtrarAsistencia();
+        });
 
         function filtrarAsistencia() {
-            const busqueda = document.getElementById('busquedaAsist').value.toLowerCase();
-            const supervisor = document.getElementById('filtroSupervisorAsist').value.toLowerCase();
-            const ciudad = document.getElementById('filtroCiudadAsist').value.toLowerCase();
-            const cargo = document.getElementById('filtroCargoAsist').value;
-            const estado = document.getElementById('filtroEstadoAsist').value;
+            const busqueda = estadoFiltrosAsistencia.busqueda.toLowerCase();
+            const supervisor = estadoFiltrosAsistencia.supervisor.toLowerCase();
+            const ciudad = estadoFiltrosAsistencia.ciudad.toLowerCase();
+            const cargo = estadoFiltrosAsistencia.cargo;
+            const estado = estadoFiltrosAsistencia.estado;
 
             let totalFiltrado = 0;
             let asisteFiltrado = 0;
@@ -2183,12 +2213,32 @@
 
             const selectSup = document.getElementById('filtroSupervisorAsist');
             const selectCiu = document.getElementById('filtroCiudadAsist');
+            
+            // Guardar valores actuales
+            const valorActualSup = selectSup.value;
+            const valorActualCiu = selectCiu.value;
 
             selectSup.innerHTML = '<option value="">📊 Todos los supervisores</option>';
             supervisores.forEach(s => selectSup.innerHTML += `<option value="${s}">${s}</option>`);
 
             selectCiu.innerHTML = '<option value="">🏙️ Todas las ciudades</option>';
             ciudades.forEach(c => selectCiu.innerHTML += `<option value="${c}">${c}</option>`);
+            
+            // Restaurar valores si existían
+            if (valorActualSup) selectSup.value = valorActualSup;
+            if (valorActualCiu) selectCiu.value = valorActualCiu;
+        }
+
+        function restaurarFiltrosAsistencia() {
+            // Restaurar valores de los filtros sin recargar opciones
+            document.getElementById('busquedaAsist').value = estadoFiltrosAsistencia.busqueda;
+            document.getElementById('filtroSupervisorAsist').value = estadoFiltrosAsistencia.supervisor;
+            document.getElementById('filtroCiudadAsist').value = estadoFiltrosAsistencia.ciudad;
+            document.getElementById('filtroCargoAsist').value = estadoFiltrosAsistencia.cargo;
+            document.getElementById('filtroEstadoAsist').value = estadoFiltrosAsistencia.estado;
+            
+            // Aplicar filtros
+            filtrarAsistencia();
         }
     </script>
     <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
