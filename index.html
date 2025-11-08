@@ -718,7 +718,74 @@
         const modalRegistrarAsistencia = new bootstrap.Modal(document.getElementById('modalRegistrarAsistencia'));
         const modalPersonal = new bootstrap.Modal(document.getElementById('modalPersonal'));
 
-        // ========== GESTIÓN DE SESIÓN CON LOCALSTORAGE ==========
+        // ========== GESTIÓN DE TOKEN Y PERMISOS ==========
+        async function verificarYRenovarToken() {
+            const token = gapi.client.getToken();
+            if (!token) {
+                console.log('No hay token, solicitando autorización...');
+                return false;
+            }
+
+            // Verificar si el token está por expirar (menos de 5 minutos)
+            const ahora = Date.now();
+            const expiracion = token.expires_at || 0;
+            
+            if (expiracion - ahora < 5 * 60 * 1000) {
+                console.log('Token por expirar, renovando...');
+                try {
+                    await new Promise((resolve, reject) => {
+                        tokenClient.callback = (resp) => {
+                            if (resp.error !== undefined) {
+                                reject(resp);
+                            } else {
+                                guardarSesion();
+                                resolve(resp);
+                            }
+                        };
+                        tokenClient.requestAccessToken({prompt: ''});
+                    });
+                    return true;
+                } catch (error) {
+                    console.error('Error renovando token:', error);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        async function ejecutarConReintento(operacion, nombreOperacion = 'operación') {
+            try {
+                // Verificar token antes de ejecutar
+                await verificarYRenovarToken();
+                
+                // Intentar la operación
+                return await operacion();
+            } catch (error) {
+                // Si es error de permisos, intentar renovar token y reintentar
+                if (error.result?.error?.message?.includes('permission') || 
+                    error.result?.error?.code === 403 ||
+                    error.message?.includes('permission')) {
+                    
+                    console.log(`Error de permisos en ${nombreOperacion}, renovando token e intentando de nuevo...`);
+                    
+                    // Renovar token
+                    const renovado = await verificarYRenovarToken();
+                    
+                    if (renovado) {
+                        // Reintentar la operación
+                        try {
+                            return await operacion();
+                        } catch (retryError) {
+                            console.error(`Reintento fallido en ${nombreOperacion}:`, retryError);
+                            throw retryError;
+                        }
+                    }
+                }
+                
+                throw error;
+            }
+        }
         function guardarSesion() {
             if (usuarioActual) {
                 const sesion = {
