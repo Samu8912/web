@@ -239,8 +239,8 @@
                                 </div>
                                 <div class="col-md-3 col-6">
                                     <div class="form-check">
-                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-cargo" data-col="2" checked disabled>
-                                        <label class="form-check-label" for="col-cargo">Cargo *</label>
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-cargo" data-col="2">
+                                        <label class="form-check-label" for="col-cargo">Cargo</label>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-6">
@@ -338,14 +338,12 @@
                             <input type="text" id="busquedaAsist" class="form-control" placeholder="🔍 Buscar...">
                         </div>
                         <div class="col-lg-3 col-md-6">
-                            <select id="filtroSupervisorAsist" class="form-select">
-                                <option value="">📊 Todos los supervisores</option>
-                            </select>
+                            <input type="text" id="filtroSupervisorAsist" class="form-control" list="lista-supervisores-asist" placeholder="📊 Supervisor...">
+                            <datalist id="lista-supervisores-asist"></datalist>
                         </div>
                         <div class="col-lg-2 col-md-6">
-                            <select id="filtroCiudadAsist" class="form-select">
-                                <option value="">🏙️ Todas las ciudades</option>
-                            </select>
+                            <input type="text" id="filtroCiudadAsist" class="form-control" list="lista-ciudades-asist" placeholder="🏙️ Ciudad...">
+                            <datalist id="lista-ciudades-asist"></datalist>
                         </div>
                         <div class="col-lg-2 col-md-6">
                             <select id="filtroCargoAsist" class="form-select">
@@ -2142,11 +2140,11 @@
             estadoFiltrosAsistencia.busqueda = this.value;
             filtrarAsistencia();
         });
-        document.getElementById('filtroSupervisorAsist').addEventListener('change', function() {
+        document.getElementById('filtroSupervisorAsist').addEventListener('input', function() {
             estadoFiltrosAsistencia.supervisor = this.value;
             filtrarAsistencia();
         });
-        document.getElementById('filtroCiudadAsist').addEventListener('change', function() {
+        document.getElementById('filtroCiudadAsist').addEventListener('input', function() {
             estadoFiltrosAsistencia.ciudad = this.value;
             filtrarAsistencia();
         });
@@ -2211,22 +2209,26 @@
             const supervisores = [...new Set(datosGlobales.planPadrino.map(p => p.SUPERVISOR))].filter(s => s).sort();
             const ciudades = [...new Set(datosGlobales.planPadrino.map(p => p.CIUDAD))].filter(c => c).sort();
 
-            const selectSup = document.getElementById('filtroSupervisorAsist');
-            const selectCiu = document.getElementById('filtroCiudadAsist');
+            const datalistSup = document.getElementById('lista-supervisores-asist');
+            const datalistCiu = document.getElementById('lista-ciudades-asist');
             
             // Guardar valores actuales
-            const valorActualSup = selectSup.value;
-            const valorActualCiu = selectCiu.value;
+            const valorActualSup = document.getElementById('filtroSupervisorAsist').value;
+            const valorActualCiu = document.getElementById('filtroCiudadAsist').value;
 
-            selectSup.innerHTML = '<option value="">📊 Todos los supervisores</option>';
-            supervisores.forEach(s => selectSup.innerHTML += `<option value="${s}">${s}</option>`);
+            datalistSup.innerHTML = '';
+            supervisores.forEach(s => {
+                datalistSup.innerHTML += `<option value="${s}">`;
+            });
 
-            selectCiu.innerHTML = '<option value="">🏙️ Todas las ciudades</option>';
-            ciudades.forEach(c => selectCiu.innerHTML += `<option value="${c}">${c}</option>`);
+            datalistCiu.innerHTML = '';
+            ciudades.forEach(c => {
+                datalistCiu.innerHTML += `<option value="${c}">`;
+            });
             
             // Restaurar valores si existían
-            if (valorActualSup) selectSup.value = valorActualSup;
-            if (valorActualCiu) selectCiu.value = valorActualCiu;
+            if (valorActualSup) document.getElementById('filtroSupervisorAsist').value = valorActualSup;
+            if (valorActualCiu) document.getElementById('filtroCiudadAsist').value = valorActualCiu;
         }
 
         function restaurarFiltrosAsistencia() {
