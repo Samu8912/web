@@ -150,7 +150,9 @@
             <h1 class="text-center mb-3">📋 Sistema de Asistencia y Gestión de Personal</h1>
             <h5 class="text-center text-muted">Conectar TV</h5>
             <p class="text-center text-muted mb-0" id="fecha-actual"></p>
-            <p class="text-center mb-3"><span class="badge bg-primary" id="usuario-rol"></span></p>
+            <p class="text-center mb-3">
+                <span class="badge bg-primary" id="usuario-rol"></span>
+            </p>
             <div class="text-center mt-3">
                 <button id="btnAutorizar" class="btn btn-primary btn-lg">🔐 Autorizar Google Sheets</button>
                 <button id="btnCerrarSesion" class="btn btn-secondary" style="display:none;">🚪 Cerrar Sesión</button>
@@ -207,9 +209,78 @@
                             <label class="form-label fw-bold">📅 Seleccionar Fecha:</label>
                             <input type="date" id="fechaAsistencia" class="form-control">
                         </div>
-                        <div class="col-md-8 text-end">
-                            <button id="btnCargarAsistencia" class="btn btn-primary">🔄 Cargar Asistencia</button>
+                        <div class="col-md-8 text-end" id="controles-analista">
                             <button id="btnExportarAsistencia" class="btn btn-success">📥 Exportar a Excel</button>
+                        </div>
+                        <div class="col-md-8 text-end" id="controles-supervisor" style="display:none;">
+                            <button class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#columnas-selector">
+                                👁️ Mostrar/Ocultar Columnas
+                            </button>
+                            <button id="btnExportarAsistencia2" class="btn btn-success">📥 Exportar</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Selector de columnas para supervisor -->
+                    <div class="collapse mt-3" id="columnas-selector">
+                        <div class="card card-body">
+                            <h6 class="fw-bold mb-3">Seleccionar columnas visibles:</h6>
+                            <div class="row">
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-cedula" data-col="0">
+                                        <label class="form-check-label" for="col-cedula">Cédula</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-nombre" data-col="1" checked disabled>
+                                        <label class="form-check-label" for="col-nombre">Nombre *</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-cargo" data-col="2" checked disabled>
+                                        <label class="form-check-label" for="col-cargo">Cargo *</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-ciudad" data-col="3">
+                                        <label class="form-check-label" for="col-ciudad">Ciudad</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-supervisor" data-col="4">
+                                        <label class="form-check-label" for="col-supervisor">Supervisor</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-estado" data-col="5">
+                                        <label class="form-check-label" for="col-estado">Estado</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-hora" data-col="6">
+                                        <label class="form-check-label" for="col-hora">Hora Entrada</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-tipo-novedad" data-col="7">
+                                        <label class="form-check-label" for="col-tipo-novedad">Tipo Novedad</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-observaciones" data-col="8">
+                                        <label class="form-check-label" for="col-observaciones">Observaciones</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted mt-2">* Columnas obligatorias que no se pueden ocultar</small>
                         </div>
                     </div>
                 </div>
@@ -300,16 +371,16 @@
                     <table class="table table-hover" id="tablaAsistencia">
                         <thead class="table-dark">
                             <tr>
-                                <th>Cédula</th>
-                                <th>Nombre</th>
-                                <th>Cargo</th>
-                                <th>Ciudad</th>
-                                <th>Supervisor</th>
-                                <th>Estado</th>
-                                <th>Hora Entrada</th>
-                                <th>Tipo Novedad</th>
-                                <th>Observaciones</th>
-                                <th>Acciones</th>
+                                <th data-col="0">Cédula</th>
+                                <th data-col="1">Nombre</th>
+                                <th data-col="2">Cargo</th>
+                                <th data-col="3">Ciudad</th>
+                                <th data-col="4">Supervisor</th>
+                                <th data-col="5">Estado</th>
+                                <th data-col="6">Hora Entrada</th>
+                                <th data-col="7">Tipo Novedad</th>
+                                <th data-col="8">Observaciones</th>
+                                <th data-col="9">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-asistencia">
@@ -617,6 +688,7 @@
         let tokenClient;
         let datosGlobales = { planPadrino: [], asistencia: [], valores: {} };
         let usuarioActual = null;
+        let intervaloActualizacion = null;
 
         // Credenciales de usuarios
         const USUARIOS = {
@@ -640,6 +712,82 @@
         // Modales
         const modalRegistrarAsistencia = new bootstrap.Modal(document.getElementById('modalRegistrarAsistencia'));
         const modalPersonal = new bootstrap.Modal(document.getElementById('modalPersonal'));
+
+        // ========== GESTIÓN DE SESIÓN CON LOCALSTORAGE ==========
+        function guardarSesion() {
+            if (usuarioActual) {
+                const sesion = {
+                    usuario: usuarioActual,
+                    timestamp: new Date().getTime()
+                };
+                localStorage.setItem('sesionUsuario', JSON.stringify(sesion));
+            }
+
+            const token = gapi.client.getToken();
+            if (token) {
+                localStorage.setItem('googleToken', JSON.stringify(token));
+            }
+        }
+
+        function cargarSesionGuardada() {
+            // Cargar sesión de usuario
+            const sesionGuardada = localStorage.getItem('sesionUsuario');
+            if (sesionGuardada) {
+                const sesion = JSON.parse(sesionGuardada);
+                const ahora = new Date().getTime();
+                const unDia = 24 * 60 * 60 * 1000;
+
+                // Si la sesión tiene menos de 1 día
+                if (ahora - sesion.timestamp < unDia) {
+                    usuarioActual = sesion.usuario;
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('header-principal').style.display = 'block';
+                    document.getElementById('mainTabs').style.display = 'flex';
+                    document.getElementById('mainTabsContent').style.display = 'block';
+                    document.getElementById('usuario-rol').textContent = `👤 ${sesion.usuario.rol}`;
+                    document.getElementById('btnCerrarSesionUsuario').style.display = 'inline-block';
+                    configurarPermisos();
+                } else {
+                    // Sesión expirada
+                    localStorage.removeItem('sesionUsuario');
+                }
+            }
+
+            // Cargar token de Google
+            const tokenGuardado = localStorage.getItem('googleToken');
+            if (tokenGuardado && gapiInited) {
+                const token = JSON.parse(tokenGuardado);
+                gapi.client.setToken(token);
+                document.getElementById('btnAutorizar').style.display = 'none';
+                document.getElementById('btnCerrarSesion').style.display = 'inline-block';
+                
+                // Cargar datos si hay usuario
+                if (usuarioActual) {
+                    cargarPlanPadrino();
+                    cargarValores();
+                    iniciarActualizacionAutomatica();
+                }
+            }
+        }
+
+        function cerrarSesionCompleta() {
+            usuarioActual = null;
+            localStorage.removeItem('sesionUsuario');
+            localStorage.removeItem('googleToken');
+            
+            if (intervaloActualizacion) {
+                clearInterval(intervaloActualizacion);
+                intervaloActualizacion = null;
+            }
+            
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('header-principal').style.display = 'none';
+            document.getElementById('mainTabs').style.display = 'none';
+            document.getElementById('mainTabsContent').style.display = 'none';
+            document.getElementById('btnCerrarSesionUsuario').style.display = 'none';
+            
+            handleSignoutClick();
+        }
 
         // Login
         document.getElementById('btnLogin').addEventListener('click', function() {
@@ -676,6 +824,9 @@
             // Configurar permisos según rol
             configurarPermisos();
 
+            // Guardar sesión
+            guardarSesion();
+
             // Limpiar campos
             document.getElementById('login-usuario').value = '';
             document.getElementById('login-password').value = '';
@@ -690,15 +841,9 @@
 
         // Cerrar sesión de usuario
         document.getElementById('btnCerrarSesionUsuario').addEventListener('click', function() {
-            usuarioActual = null;
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('header-principal').style.display = 'none';
-            document.getElementById('mainTabs').style.display = 'none';
-            document.getElementById('mainTabsContent').style.display = 'none';
-            document.getElementById('btnCerrarSesionUsuario').style.display = 'none';
-            
-            // Cerrar sesión de Google también
-            handleSignoutClick();
+            if (confirm('¿Cerrar sesión?')) {
+                cerrarSesionCompleta();
+            }
         });
 
         function configurarPermisos() {
@@ -707,14 +852,55 @@
                 document.getElementById('tab-plan').style.display = 'none';
                 document.getElementById('tab-valores').style.display = 'none';
                 
+                // Mostrar controles de supervisor y ocultar de analista
+                document.getElementById('controles-supervisor').style.display = 'block';
+                document.getElementById('controles-analista').style.display = 'none';
+                
+                // Configurar columnas por defecto (solo Nombre, Cargo y Acciones)
+                aplicarColumnasVisibles();
+                
                 // Asegurar que esté en Asistencia
                 document.getElementById('asistencia-tab').click();
             } else {
                 // Mostrar todo para ANALISTA
                 document.getElementById('tab-plan').style.display = 'block';
                 document.getElementById('tab-valores').style.display = 'block';
+                document.getElementById('controles-supervisor').style.display = 'none';
+                document.getElementById('controles-analista').style.display = 'block';
+                
+                // Mostrar todas las columnas para analista
+                document.querySelectorAll('#tablaAsistencia th, #tablaAsistencia td').forEach(el => {
+                    el.style.display = '';
+                });
             }
         }
+
+        // Aplicar visibilidad de columnas según checkboxes
+        function aplicarColumnasVisibles() {
+            const checkboxes = document.querySelectorAll('.columna-toggle');
+            
+            checkboxes.forEach(checkbox => {
+                const colIndex = checkbox.dataset.col;
+                const isVisible = checkbox.checked;
+                
+                // Aplicar a headers
+                document.querySelectorAll(`#tablaAsistencia th[data-col="${colIndex}"]`).forEach(th => {
+                    th.style.display = isVisible ? '' : 'none';
+                });
+                
+                // Aplicar a celdas
+                document.querySelectorAll(`#tablaAsistencia td[data-col="${colIndex}"]`).forEach(td => {
+                    td.style.display = isVisible ? '' : 'none';
+                });
+            });
+        }
+
+        // Event listeners para checkboxes de columnas
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.columna-toggle').forEach(checkbox => {
+                checkbox.addEventListener('change', aplicarColumnasVisibles);
+            });
+        });
 
         // Inicializar GAPI
         function gapiLoaded() {
@@ -743,6 +929,8 @@
         function maybeEnableButtons() {
             if (gapiInited && gisInited) {
                 document.getElementById('btnAutorizar').style.display = 'inline-block';
+                // Intentar cargar sesión guardada
+                cargarSesionGuardada();
             }
         }
 
@@ -755,8 +943,15 @@
                 if (resp.error !== undefined) throw (resp);
                 document.getElementById('btnAutorizar').style.display = 'none';
                 document.getElementById('btnCerrarSesion').style.display = 'inline-block';
+                
+                // Guardar token
+                guardarSesion();
+                
                 await cargarPlanPadrino();
                 await cargarValores();
+                
+                // Iniciar actualización automática
+                iniciarActualizacionAutomatica();
             };
 
             if (gapi.client.getToken() === null) {
@@ -771,9 +966,40 @@
             if (token !== null) {
                 google.accounts.oauth2.revoke(token.access_token);
                 gapi.client.setToken('');
+                localStorage.removeItem('googleToken');
                 document.getElementById('btnAutorizar').style.display = 'inline-block';
                 document.getElementById('btnCerrarSesion').style.display = 'none';
             }
+            
+            if (intervaloActualizacion) {
+                clearInterval(intervaloActualizacion);
+                intervaloActualizacion = null;
+            }
+        }
+
+        // ========== ACTUALIZACIÓN AUTOMÁTICA EN TIEMPO REAL ==========
+        function iniciarActualizacionAutomatica() {
+            // Actualizar cada 2 segundos
+            if (intervaloActualizacion) {
+                clearInterval(intervaloActualizacion);
+            }
+            
+            intervaloActualizacion = setInterval(async () => {
+                try {
+                    // Solo actualizar si hay token válido
+                    if (gapi.client.getToken()) {
+                        await cargarPlanPadrino();
+                        
+                        // Si está en la vista de asistencia y hay fecha seleccionada
+                        const fecha = document.getElementById('fechaAsistencia').value;
+                        if (fecha && document.getElementById('asistencia').classList.contains('active')) {
+                            await cargarAsistencia();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error en actualización automática:', error);
+                }
+            }, 2000); // 2 segundos
         }
 
         // Cargar Plan Padrino
@@ -891,7 +1117,7 @@
         }
 
         // Cargar Asistencia
-        document.getElementById('btnCargarAsistencia').addEventListener('click', cargarAsistencia);
+        document.getElementById('fechaAsistencia').addEventListener('change', cargarAsistencia);
 
         async function cargarAsistencia() {
             try {
@@ -913,7 +1139,12 @@
 
                 const rows = response.result.values || [];
                 if (rows.length === 0) {
-                    // Crear encabezados
+                    // Crear encabezados si no existen - LIMPIAR PRIMERO TODO
+                    await gapi.client.sheets.spreadsheets.values.clear({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID,
+                        range: `${CONFIG.HOJA_ASISTENCIA}!A:Z`,
+                    });
+                    
                     await gapi.client.sheets.spreadsheets.values.update({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
                         range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
@@ -1032,16 +1263,16 @@
                 tr.dataset.estado = p.ESTADO;
 
                 tr.innerHTML = `
-                    <td>${p.CEDULA}</td>
-                    <td>${p.NOMBRE}</td>
-                    <td><span class="badge bg-secondary">${p.CARGO}</span></td>
-                    <td>${p.CIUDAD}</td>
-                    <td>${p.SUPERVISOR}</td>
-                    <td><span class="badge estado-${p.ESTADO}">${p.ESTADO.replace('_', ' ')}</span></td>
-                    <td>${p.HORA_ENTRADA}</td>
-                    <td>${p.TIPO_NOVEDAD}</td>
-                    <td>${p.OBSERVACIONES}</td>
-                    <td>
+                    <td data-col="0">${p.CEDULA}</td>
+                    <td data-col="1">${p.NOMBRE}</td>
+                    <td data-col="2"><span class="badge bg-secondary">${p.CARGO}</span></td>
+                    <td data-col="3">${p.CIUDAD}</td>
+                    <td data-col="4">${p.SUPERVISOR}</td>
+                    <td data-col="5"><span class="badge estado-${p.ESTADO}">${p.ESTADO.replace('_', ' ')}</span></td>
+                    <td data-col="6">${p.HORA_ENTRADA}</td>
+                    <td data-col="7">${p.TIPO_NOVEDAD}</td>
+                    <td data-col="8">${p.OBSERVACIONES}</td>
+                    <td data-col="9">
                         <button class="btn btn-sm btn-primary btn-registrar-asist" 
                                 data-cedula="${p.CEDULA}"
                                 data-nombre="${p.NOMBRE}"
@@ -1058,6 +1289,11 @@
             document.querySelectorAll('.btn-registrar-asist').forEach(btn => {
                 btn.addEventListener('click', abrirModalRegistrar);
             });
+
+            // Aplicar visibilidad de columnas si es supervisor
+            if (usuarioActual && usuarioActual.rol === 'SUPERVISOR') {
+                aplicarColumnasVisibles();
+            }
         }
 
         // Modal Registrar Asistencia
@@ -1068,13 +1304,17 @@
             document.getElementById('asist-ciudad').value = this.dataset.ciudad;
             document.getElementById('asist-supervisor').value = this.dataset.supervisor;
             
+            // LIMPIAR TODOS LOS CAMPOS
             document.getElementById('asist-estado').value = 'ASISTE';
             document.getElementById('asist-hora').value = '';
             document.getElementById('asist-tipo-novedad').value = '';
+            document.getElementById('asist-dias-novedad').value = '';
             document.getElementById('asist-observaciones').value = '';
             
+            // OCULTAR CAMPOS CONDICIONALES
             document.getElementById('div-hora-entrada').style.display = 'none';
             document.getElementById('div-tipo-novedad').style.display = 'none';
+            document.getElementById('div-dias-novedad').style.display = 'none';
             
             modalRegistrarAsistencia.show();
         }
@@ -1130,10 +1370,23 @@
                 // Buscar si ya existe registro
                 const response = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_ASISTENCIA}!A:K`,
+                    range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
                 });
 
                 const rows = response.result.values || [];
+                
+                // Asegurar que existan encabezados
+                if (rows.length === 0) {
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID,
+                        range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
+                        valueInputOption: 'RAW',
+                        resource: {
+                            values: [['FECHA', 'CEDULA', 'NOMBRE', 'CARGO', 'SUPERVISOR', 'CIUDAD', 'ESTADO', 'HORA_ENTRADA', 'TIPO_NOVEDAD', 'OBSERVACIONES']]
+                        }
+                    });
+                }
+                
                 let filaExistente = -1;
 
                 for (let i = 1; i < rows.length; i++) {
@@ -1147,7 +1400,7 @@
                 const valores = [[fecha, cedula, nombre, cargo, supervisor, ciudad, estado, hora, tipoNovedad, observacionesCompletas]];
 
                 if (filaExistente > 0) {
-                    // Actualizar
+                    // Actualizar - usar rango explícito A a J
                     await gapi.client.sheets.spreadsheets.values.update({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
                         range: `${CONFIG.HOJA_ASISTENCIA}!A${filaExistente}:J${filaExistente}`,
@@ -1155,11 +1408,12 @@
                         resource: { values: valores }
                     });
                 } else {
-                    // Agregar
+                    // Agregar - usar append pero con rango explícito
                     await gapi.client.sheets.spreadsheets.values.append({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
                         range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
                         valueInputOption: 'RAW',
+                        insertDataOption: 'INSERT_ROWS',
                         resource: { values: valores }
                     });
                 }
@@ -1567,6 +1821,10 @@
 
         // ========== EXPORTAR A EXCEL ==========
         document.getElementById('btnExportarAsistencia').addEventListener('click', function() {
+            exportarTablaAExcel('tablaAsistencia', 'Asistencia');
+        });
+        
+        document.getElementById('btnExportarAsistencia2').addEventListener('click', function() {
             exportarTablaAExcel('tablaAsistencia', 'Asistencia');
         });
 
