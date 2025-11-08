@@ -257,7 +257,7 @@
                                 </div>
                                 <div class="col-md-3 col-6">
                                     <div class="form-check">
-                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-estado" data-col="5">
+                                        <input class="form-check-input columna-toggle" type="checkbox" id="col-estado" data-col="5" checked>
                                         <label class="form-check-label" for="col-estado">Estado</label>
                                     </div>
                                 </div>
@@ -1018,7 +1018,7 @@
 
                 const rows = response.result.values || [];
                 if (rows.length === 0) {
-                    alert('La hoja BASE está vacía. Por favor, asegúrate de que tenga los datos');
+                    console.warn('La hoja BASE está vacía');
                     datosGlobales.planPadrino = [];
                 } else {
                     datosGlobales.planPadrino = procesarPlanPadrino(rows);
@@ -1027,8 +1027,12 @@
                 renderizarPlanPadrino(datosGlobales.planPadrino);
                 cargarFiltrosPlan();
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error al cargar BASE: ' + error.message);
+                console.error('Error al cargar BASE:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
+                // No mostrar alert en actualizaciones automáticas
+                if (!intervaloActualizacion || datosGlobales.planPadrino.length === 0) {
+                    alert('Error al cargar BASE: ' + (error.result?.error?.message || error.message || 'Error desconocido'));
+                }
             }
         }
 
@@ -1173,8 +1177,9 @@
                 }
 
             } catch (error) {
-                console.error('Error:', error);
-                if (!silencioso) alert('Error al cargar asistencia: ' + error.message);
+                console.error('Error completo al cargar asistencia:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
+                if (!silencioso) alert('Error al cargar asistencia: ' + (error.result?.error?.message || error.message || 'Error desconocido'));
             }
         }
 
@@ -1436,8 +1441,9 @@
                 await cargarAsistencia();
 
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error al guardar: ' + error.message);
+                console.error('Error completo al guardar:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
+                alert('Error al guardar: ' + (error.result?.error?.message || error.message || 'Error desconocido. Revisa la consola para más detalles.'));
             }
         });
 
@@ -1478,7 +1484,8 @@
                 });
 
             } catch (error) {
-                console.error('Error actualizando estado:', error);
+                console.error('Error completo al actualizar estado:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
             }
         }
 
@@ -1693,8 +1700,9 @@
                 await cargarPlanPadrino();
 
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error al guardar: ' + error.message);
+                console.error('Error completo al guardar asistencia:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
+                alert('Error al guardar: ' + (error.result?.error?.message || error.message || 'Error desconocido. Revisa la consola.'));
             }
         });
 
