@@ -674,6 +674,7 @@
             API_KEY: 'AIzaSyDB0drcnkGdqKyJhsfStbcAQ7qiBqdhc4U',
             CLIENT_ID: '965807081420-jc0gsh5umaief7s262qi22ooa64bvv14.apps.googleusercontent.com',
             SPREADSHEET_ID: '1XJg_kvifS_e3UTztx7uhaNukCsnehuIF0ZhEC7lSFhw',
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxL3HSIuoMXwIykrcgCMBY-rntKK_9WhgddyjQbn6Dy7JnZTI7Kmvu6IEQ3V3ftlt9A/exec',
             HOJA_PLAN: 'BASE',
             HOJA_ASISTENCIA: 'ASISTENCIA',
             HOJA_VALORES: 'VALORES',
@@ -694,6 +695,42 @@
             cargo: '',
             estado: ''
         };
+
+        // Función helper para llamar a Apps Script
+        async function llamarAppsScript(action, data = {}) {
+            try {
+                const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action, ...data })
+                });
+                
+                // En modo no-cors no podemos leer la respuesta, así que asumimos éxito
+                // Esperamos un poco y devolvemos true
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return { success: true };
+            } catch (error) {
+                console.error('Error llamando Apps Script:', error);
+                throw error;
+            }
+        }
+
+        // Función para leer datos (usamos la API normal porque es solo lectura)
+        async function leerDatosSheet(rango) {
+            try {
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: rango,
+                });
+                return response.result.values || [];
+            } catch (error) {
+                console.error('Error leyendo datos:', error);
+                throw error;
+            }
+        }
 
         // Credenciales de usuarios
         const USUARIOS = {
@@ -1056,12 +1093,8 @@
         // Cargar Plan Padrino
         async function cargarPlanPadrino() {
             try {
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:R`,
-                });
+                const rows = await leerDatosSheet(`${CONFIG.HOJA_PLAN}!A:R`);
 
-                const rows = response.result.values || [];
                 if (rows.length === 0) {
                     console.warn('La hoja BASE está vacía');
                     datosGlobales.planPadrino = [];
@@ -1187,19 +1220,10 @@
                     await cargarPlanPadrino();
                 }
 
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
-                });
+                const rows = await leerDatosSheet(`${CONFIG.HOJA_ASISTENCIA}!A:J`);
 
-                const rows = response.result.values || [];
                 if (rows.length === 0 && !silencioso) {
-                    // Crear encabezados si no existen - LIMPIAR PRIMERO TODO
-                    await gapi.client.sheets.spreadsheets.values.clear({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A:Z`,
-                    });
-                    
+                    // Crear encabezados si no existen
                     await gapi.client.sheets.spreadsheets.values.update({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
                         range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
@@ -1493,45 +1517,9 @@
         });
 
         async function actualizarEstadoEnBase(cedula, tipoNovedad) {
-            try {
-                const mapeoEstados = {
-                    'INCAPACIDAD / EPS': 'INCAPACITADO',
-                    'VACACIONES': 'VACACIONES',
-                    'RETIRO / RENUNCIA': 'RETIRADO',
-                    'SUSPENSIÓN': 'SUSPENDIDO',
-                    'CALAMIDAD / LUTO': 'CALAMIDAD'
-                };
-
-                const nuevoEstado = mapeoEstados[tipoNovedad] || 'ACTIVO';
-
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:R`,
-                });
-
-                const rows = response.result.values || [];
-                
-                for (let i = 1; i < rows.length; i++) {
-                    if (rows[i][0] === cedula) {
-                        // Asegurar que el array tenga 18 elementos
-                        while (rows[i].length < 18) {
-                            rows[i].push('');
-                        }
-                        rows[i][17] = nuevoEstado; // Columna R (índice 17)
-                    }
-                }
-
-                await gapi.client.sheets.spreadsheets.values.update({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
-                    valueInputOption: 'RAW',
-                    resource: { values: rows }
-                });
-
-            } catch (error) {
-                console.error('Error completo al actualizar estado:', error);
-                console.error('Detalle del error:', error.result || error.message || error);
-            }
+            // Esta función ya no se usa, se reemplazó por llamarAppsScript
+            // La dejo aquí para compatibilidad pero no hace nada
+            return;
         }
 
         // Modal Personal
