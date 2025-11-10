@@ -719,8 +719,17 @@
         // Función para leer datos usando Apps Script (GET)
         async function leerDatosSheet(action) {
             try {
-                const url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}`;
-                const response = await fetch(url);
+                const url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}&_=${new Date().getTime()}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -730,6 +739,8 @@
                 }
             } catch (error) {
                 console.error('Error leyendo datos:', error);
+                console.error('Action:', action);
+                console.error('URL:', CONFIG.APPS_SCRIPT_URL);
                 throw error;
             }
         }
