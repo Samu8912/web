@@ -701,31 +701,33 @@
             try {
                 const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ action, ...data })
+                    body: JSON.stringify({ action, ...data }),
+                    redirect: 'follow'
                 });
                 
-                // En modo no-cors no podemos leer la respuesta, así que asumimos éxito
-                // Esperamos un poco y devolvemos true
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return { success: true };
+                const result = await response.json();
+                return result;
             } catch (error) {
                 console.error('Error llamando Apps Script:', error);
                 throw error;
             }
         }
 
-        // Función para leer datos (usamos la API normal porque es solo lectura)
-        async function leerDatosSheet(rango) {
+        // Función para leer datos usando Apps Script (GET)
+        async function leerDatosSheet(action) {
             try {
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: rango,
-                });
-                return response.result.values || [];
+                const url = `${CONFIG.APPS_SCRIPT_URL}?action=${action}`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    return result.data;
+                } else {
+                    throw new Error(result.error || 'Error desconocido');
+                }
             } catch (error) {
                 console.error('Error leyendo datos:', error);
                 throw error;
@@ -1093,12 +1095,8 @@
         // Cargar Plan Padrino
         async function cargarPlanPadrino() {
             try {
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:R`,
-                });
+                const rows = await leerDatosSheet('leerBase');
 
-                const rows = response.result.values || [];
                 if (rows.length === 0) {
                     console.warn('La hoja BASE está vacía');
                     datosGlobales.planPadrino = [];
@@ -1110,10 +1108,9 @@
                 cargarFiltrosPlan();
             } catch (error) {
                 console.error('Error al cargar BASE:', error);
-                console.error('Detalle del error:', error.result || error.message || error);
                 // No mostrar alert en actualizaciones automáticas
                 if (!intervaloActualizacion || datosGlobales.planPadrino.length === 0) {
-                    alert('Error al cargar BASE: ' + (error.result?.error?.message || error.message || 'Error desconocido'));
+                    alert('Error al cargar BASE: ' + error.message);
                 }
             }
         }
@@ -1224,28 +1221,7 @@
                     await cargarPlanPadrino();
                 }
 
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
-                });
-
-                const rows = response.result.values || [];
-                if (rows.length === 0 && !silencioso) {
-                    // Crear encabezados si no existen - LIMPIAR PRIMERO TODO
-                    await gapi.client.sheets.spreadsheets.values.clear({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A:Z`,
-                    });
-                    
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
-                        valueInputOption: 'RAW',
-                        resource: {
-                            values: [['FECHA', 'CEDULA', 'NOMBRE', 'CARGO', 'SUPERVISOR', 'CIUDAD', 'ESTADO', 'HORA_ENTRADA', 'TIPO_NOVEDAD', 'OBSERVACIONES']]
-                        }
-                    });
-                }
+                const rows = await leerDatosSheet('leerAsistencia');
 
                 const asistenciaHoy = procesarAsistencia(rows, fecha);
                 renderizarAsistencia(asistenciaHoy);
@@ -1259,9 +1235,8 @@
                 }
 
             } catch (error) {
-                console.error('Error completo al cargar asistencia:', error);
-                console.error('Detalle del error:', error.result || error.message || error);
-                if (!silencioso) alert('Error al cargar asistencia: ' + (error.result?.error?.message || error.message || 'Error desconocido'));
+                console.error('Error al cargar asistencia:', error);
+                if (!silencioso) alert('Error al cargar asistencia: ' + error.message);
             }
         }
 
@@ -1530,45 +1505,9 @@
         });
 
         async function actualizarEstadoEnBase(cedula, tipoNovedad) {
-            try {
-                const mapeoEstados = {
-                    'INCAPACIDAD / EPS': 'INCAPACITADO',
-                    'VACACIONES': 'VACACIONES',
-                    'RETIRO / RENUNCIA': 'RETIRADO',
-                    'SUSPENSIÓN': 'SUSPENDIDO',
-                    'CALAMIDAD / LUTO': 'CALAMIDAD'
-                };
-
-                const nuevoEstado = mapeoEstados[tipoNovedad] || 'ACTIVO';
-
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A:R`,
-                });
-
-                const rows = response.result.values || [];
-                
-                for (let i = 1; i < rows.length; i++) {
-                    if (rows[i][0] === cedula) {
-                        // Asegurar que el array tenga 18 elementos
-                        while (rows[i].length < 18) {
-                            rows[i].push('');
-                        }
-                        rows[i][17] = nuevoEstado; // Columna R (índice 17)
-                    }
-                }
-
-                await gapi.client.sheets.spreadsheets.values.update({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
-                    valueInputOption: 'RAW',
-                    resource: { values: rows }
-                });
-
-            } catch (error) {
-                console.error('Error completo al actualizar estado:', error);
-                console.error('Detalle del error:', error.result || error.message || error);
-            }
+            // Esta función ya no se usa, se reemplazó por llamarAppsScript
+            // La dejo aquí para compatibilidad pero no hace nada
+            return;
         }
 
         // Modal Personal
@@ -2002,23 +1941,9 @@
         // ========== VALORES PERMITIDOS ==========
         async function cargarValores() {
             try {
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_VALORES}!A:E`,
-                });
-
-                const rows = response.result.values || [];
+                const rows = await leerDatosSheet('leerValores');
                 
                 if (rows.length === 0) {
-                    // Crear encabezados si no existen
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_VALORES}!A1:E1`,
-                        valueInputOption: 'RAW',
-                        resource: {
-                            values: [['CARPETA', 'CIUDAD', 'SUPERVISOR', 'LIDER', 'ANALISTA']]
-                        }
-                    });
                     datosGlobales.valores = {CARPETA: [], CIUDAD: [], SUPERVISOR: [], LIDER: [], ANALISTA: []};
                 } else {
                     datosGlobales.valores = {
@@ -2029,8 +1954,6 @@
                         ANALISTA: []
                     };
 
-                    // Procesar cada columna
-                    const maxRows = Math.max(...rows.map(r => r.length));
                     const numRows = rows.length;
 
                     for (let col = 0; col < 5; col++) {
