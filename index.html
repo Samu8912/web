@@ -1093,8 +1093,12 @@
         // Cargar Plan Padrino
         async function cargarPlanPadrino() {
             try {
-                const rows = await leerDatosSheet(`${CONFIG.HOJA_PLAN}!A:R`);
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
+                });
 
+                const rows = response.result.values || [];
                 if (rows.length === 0) {
                     console.warn('La hoja BASE está vacía');
                     datosGlobales.planPadrino = [];
@@ -1220,10 +1224,19 @@
                     await cargarPlanPadrino();
                 }
 
-                const rows = await leerDatosSheet(`${CONFIG.HOJA_ASISTENCIA}!A:J`);
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
+                });
 
+                const rows = response.result.values || [];
                 if (rows.length === 0 && !silencioso) {
-                    // Crear encabezados si no existen
+                    // Crear encabezados si no existen - LIMPIAR PRIMERO TODO
+                    await gapi.client.sheets.spreadsheets.values.clear({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID,
+                        range: `${CONFIG.HOJA_ASISTENCIA}!A:Z`,
+                    });
+                    
                     await gapi.client.sheets.spreadsheets.values.update({
                         spreadsheetId: CONFIG.SPREADSHEET_ID,
                         range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
@@ -1517,9 +1530,45 @@
         });
 
         async function actualizarEstadoEnBase(cedula, tipoNovedad) {
-            // Esta función ya no se usa, se reemplazó por llamarAppsScript
-            // La dejo aquí para compatibilidad pero no hace nada
-            return;
+            try {
+                const mapeoEstados = {
+                    'INCAPACIDAD / EPS': 'INCAPACITADO',
+                    'VACACIONES': 'VACACIONES',
+                    'RETIRO / RENUNCIA': 'RETIRADO',
+                    'SUSPENSIÓN': 'SUSPENDIDO',
+                    'CALAMIDAD / LUTO': 'CALAMIDAD'
+                };
+
+                const nuevoEstado = mapeoEstados[tipoNovedad] || 'ACTIVO';
+
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A:R`,
+                });
+
+                const rows = response.result.values || [];
+                
+                for (let i = 1; i < rows.length; i++) {
+                    if (rows[i][0] === cedula) {
+                        // Asegurar que el array tenga 18 elementos
+                        while (rows[i].length < 18) {
+                            rows[i].push('');
+                        }
+                        rows[i][17] = nuevoEstado; // Columna R (índice 17)
+                    }
+                }
+
+                await gapi.client.sheets.spreadsheets.values.update({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
+                    valueInputOption: 'RAW',
+                    resource: { values: rows }
+                });
+
+            } catch (error) {
+                console.error('Error completo al actualizar estado:', error);
+                console.error('Detalle del error:', error.result || error.message || error);
+            }
         }
 
         // Modal Personal
