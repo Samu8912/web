@@ -761,16 +761,21 @@
             // Cargar token de Google
             const tokenGuardado = localStorage.getItem('googleToken');
             if (tokenGuardado && gapiInited) {
-                const token = JSON.parse(tokenGuardado);
-                gapi.client.setToken(token);
-                document.getElementById('btnAutorizar').style.display = 'none';
-                document.getElementById('btnCerrarSesion').style.display = 'inline-block';
-                
-                // Cargar datos si hay usuario
-                if (usuarioActual) {
-                    cargarPlanPadrino();
-                    cargarValores();
-                    iniciarActualizacionAutomatica();
+                try {
+                    const tokenData = JSON.parse(tokenGuardado);
+                    gapi.client.setToken(tokenData.token);
+                    document.getElementById('btnAutorizar').style.display = 'none';
+                    document.getElementById('btnCerrarSesion').style.display = 'inline-block';
+                    
+                    // Cargar datos si hay usuario
+                    if (usuarioActual) {
+                        cargarPlanPadrino();
+                        cargarValores();
+                        iniciarActualizacionAutomatica();
+                    }
+                } catch (error) {
+                    console.error('Error cargando token guardado:', error);
+                    localStorage.removeItem('googleToken');
                 }
             }
         }
@@ -946,20 +951,15 @@
         function handleAuthClick() {
             tokenClient.callback = async (resp) => {
                 if (resp.error !== undefined) throw (resp);
-                
-                const token = gapi.client.getToken();
-                console.log('Token obtenido:', token ? 'Sí' : 'No');
-                
                 document.getElementById('btnAutorizar').style.display = 'none';
                 document.getElementById('btnCerrarSesion').style.display = 'inline-block';
                 
                 // Guardar token con timestamp
-                if (token) {
-                    localStorage.setItem('googleToken', JSON.stringify({
-                        ...token,
-                        timestamp: new Date().getTime()
-                    }));
-                }
+                const tokenData = {
+                    token: gapi.client.getToken(),
+                    timestamp: new Date().getTime()
+                };
+                localStorage.setItem('googleToken', JSON.stringify(tokenData));
                 
                 await cargarPlanPadrino();
                 await cargarValores();
@@ -980,37 +980,35 @@
             const tokenGuardado = localStorage.getItem('googleToken');
             if (!tokenGuardado) return false;
 
-            const tokenData = JSON.parse(tokenGuardado);
-            const ahora = new Date().getTime();
-            const unaHora = 60 * 60 * 1000;
+            try {
+                const tokenData = JSON.parse(tokenGuardado);
+                const ahora = new Date().getTime();
+                const unaHora = 60 * 60 * 1000;
 
-            // Si el token tiene más de 50 minutos, renovarlo
-            if (ahora - tokenData.timestamp > (50 * 60 * 1000)) {
-                console.log('Token cerca de expirar, renovando...');
-                try {
-                    // Solicitar nuevo token silenciosamente
-                    tokenClient.callback = async (resp) => {
-                        if (resp.error !== undefined) {
-                            console.error('Error renovando token:', resp.error);
-                            return;
-                        }
-                        const nuevoToken = gapi.client.getToken();
-                        if (nuevoToken) {
-                            localStorage.setItem('googleToken', JSON.stringify({
-                                ...nuevoToken,
+                // Si el token tiene más de 50 minutos, renovarlo
+                if (ahora - tokenData.timestamp > (50 * 60 * 1000)) {
+                    console.log('Token antiguo, renovando...');
+                    return new Promise((resolve) => {
+                        tokenClient.callback = async (resp) => {
+                            if (resp.error !== undefined) {
+                                resolve(false);
+                                return;
+                            }
+                            const nuevoTokenData = {
+                                token: gapi.client.getToken(),
                                 timestamp: new Date().getTime()
-                            }));
-                            console.log('Token renovado exitosamente');
-                        }
-                    };
-                    tokenClient.requestAccessToken({prompt: ''});
-                    return true;
-                } catch (error) {
-                    console.error('Error al renovar token:', error);
-                    return false;
+                            };
+                            localStorage.setItem('googleToken', JSON.stringify(nuevoTokenData));
+                            resolve(true);
+                        };
+                        tokenClient.requestAccessToken({prompt: ''});
+                    });
                 }
+                return true;
+            } catch (error) {
+                console.error('Error verificando token:', error);
+                return false;
             }
-            return true;
         }
 
         function handleSignoutClick() {
