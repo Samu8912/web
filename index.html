@@ -1089,16 +1089,18 @@
             
             intervaloActualizacion = setInterval(async () => {
                 try {
-                    // Solo actualizar si hay token válido
-                    if (gapi.client.getToken()) {
-                        await cargarPlanPadrino();
-                        
-                        // Si está en la vista de asistencia y hay fecha seleccionada
+                    // Solo actualizar si hay token válido o estamos usando Apps Script
+                    const tabActiva = document.querySelector('.tab-pane.active');
+                    
+                    if (tabActiva && tabActiva.id === 'asistencia') {
+                        // Si está en asistencia
                         const fecha = document.getElementById('fechaAsistencia').value;
-                        if (fecha && document.getElementById('asistencia').classList.contains('active')) {
-                            // Cargar en modo silencioso (sin alertas, manteniendo filtros)
+                        if (fecha) {
                             await cargarAsistencia(true);
                         }
+                    } else if (tabActiva && tabActiva.id === 'plan-padrino') {
+                        // Si está en plan padrino
+                        await cargarPlanPadrino(true);
                     }
                 } catch (error) {
                     console.error('Error en actualización automática:', error);
@@ -1107,7 +1109,7 @@
         }
 
         // Cargar Plan Padrino
-        async function cargarPlanPadrino() {
+        async function cargarPlanPadrino(silencioso = false) {
             try {
                 const rows = await leerDatosSheet('leerBase');
 
@@ -1119,7 +1121,14 @@
                 }
                 
                 renderizarPlanPadrino(datosGlobales.planPadrino);
+                
+                // Siempre cargar las opciones de filtros
                 cargarFiltrosPlan();
+                
+                // Si es silencioso, restaurar valores guardados
+                if (silencioso) {
+                    restaurarFiltrosPlan();
+                }
             } catch (error) {
                 console.error('Error al cargar BASE:', error);
                 // No mostrar alert en actualizaciones automáticas
@@ -1217,6 +1226,9 @@
                     btn.addEventListener('click', eliminarPersonal);
                 });
             }
+
+            // Aplicar filtros después de renderizar
+            filtrarPlan();
         }
 
         // Cargar Asistencia
