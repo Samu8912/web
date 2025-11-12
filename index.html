@@ -403,14 +403,12 @@
                             <input type="text" id="busquedaPlan" class="form-control" placeholder="🔍 Buscar por nombre o cédula...">
                         </div>
                         <div class="col-lg-4 col-md-6">
-                            <select id="filtroSupervisorPlan" class="form-select">
-                                <option value="">📊 Todos los supervisores</option>
-                            </select>
+                            <input type="text" id="filtroSupervisorPlan" class="form-control" list="lista-supervisores-plan" placeholder="📊 Supervisor...">
+                            <datalist id="lista-supervisores-plan"></datalist>
                         </div>
                         <div class="col-lg-4 col-md-6">
-                            <select id="filtroCiudadPlan" class="form-select">
-                                <option value="">🏙️ Todas las ciudades</option>
-                            </select>
+                            <input type="text" id="filtroCiudadPlan" class="form-control" list="lista-ciudades-plan" placeholder="🏙️ Ciudad...">
+                            <datalist id="lista-ciudades-plan"></datalist>
                         </div>
                     </div>
                 </div>
@@ -694,6 +692,11 @@
             ciudad: '',
             cargo: '',
             estado: ''
+        };
+        let estadoFiltrosPlan = {
+            busqueda: '',
+            supervisor: '',
+            ciudad: ''
         };
 
         // Función helper para llamar a Apps Script
@@ -1835,14 +1838,23 @@
         }
 
         // Filtros Plan Padrino
-        document.getElementById('busquedaPlan').addEventListener('input', filtrarPlan);
-        document.getElementById('filtroSupervisorPlan').addEventListener('change', filtrarPlan);
-        document.getElementById('filtroCiudadPlan').addEventListener('change', filtrarPlan);
+        document.getElementById('busquedaPlan').addEventListener('input', function() {
+            estadoFiltrosPlan.busqueda = this.value;
+            filtrarPlan();
+        });
+        document.getElementById('filtroSupervisorPlan').addEventListener('input', function() {
+            estadoFiltrosPlan.supervisor = this.value;
+            filtrarPlan();
+        });
+        document.getElementById('filtroCiudadPlan').addEventListener('input', function() {
+            estadoFiltrosPlan.ciudad = this.value;
+            filtrarPlan();
+        });
 
         function filtrarPlan() {
-            const busqueda = document.getElementById('busquedaPlan').value.toLowerCase();
-            const supervisor = document.getElementById('filtroSupervisorPlan').value.toLowerCase();
-            const ciudad = document.getElementById('filtroCiudadPlan').value.toLowerCase();
+            const busqueda = estadoFiltrosPlan.busqueda.toLowerCase();
+            const supervisor = estadoFiltrosPlan.supervisor.toLowerCase();
+            const ciudad = estadoFiltrosPlan.ciudad.toLowerCase();
 
             document.querySelectorAll('.personal-row').forEach(fila => {
                 const nombre = fila.dataset.nombre;
@@ -1862,14 +1874,36 @@
             const supervisores = [...new Set(datosGlobales.planPadrino.map(p => p.SUPERVISOR))].filter(s => s).sort();
             const ciudades = [...new Set(datosGlobales.planPadrino.map(p => p.CIUDAD))].filter(c => c).sort();
 
-            const selectSup = document.getElementById('filtroSupervisorPlan');
-            const selectCiu = document.getElementById('filtroCiudadPlan');
+            const datalistSup = document.getElementById('lista-supervisores-plan');
+            const datalistCiu = document.getElementById('lista-ciudades-plan');
+            
+            // Guardar valores actuales
+            const valorActualSup = document.getElementById('filtroSupervisorPlan').value;
+            const valorActualCiu = document.getElementById('filtroCiudadPlan').value;
 
-            selectSup.innerHTML = '<option value="">📊 Todos los supervisores</option>';
-            supervisores.forEach(s => selectSup.innerHTML += `<option value="${s}">${s}</option>`);
+            datalistSup.innerHTML = '';
+            supervisores.forEach(s => {
+                datalistSup.innerHTML += `<option value="${s}">`;
+            });
 
-            selectCiu.innerHTML = '<option value="">🏙️ Todas las ciudades</option>';
-            ciudades.forEach(c => selectCiu.innerHTML += `<option value="${c}">${c}</option>`);
+            datalistCiu.innerHTML = '';
+            ciudades.forEach(c => {
+                datalistCiu.innerHTML += `<option value="${c}">`;
+            });
+            
+            // Restaurar valores si existían
+            if (valorActualSup) document.getElementById('filtroSupervisorPlan').value = valorActualSup;
+            if (valorActualCiu) document.getElementById('filtroCiudadPlan').value = valorActualCiu;
+        }
+
+        function restaurarFiltrosPlan() {
+            // Restaurar valores de los filtros sin recargar opciones
+            document.getElementById('busquedaPlan').value = estadoFiltrosPlan.busqueda;
+            document.getElementById('filtroSupervisorPlan').value = estadoFiltrosPlan.supervisor;
+            document.getElementById('filtroCiudadPlan').value = estadoFiltrosPlan.ciudad;
+            
+            // Aplicar filtros
+            filtrarPlan();
         }
 
         // ========== EXPORTAR A EXCEL ==========
