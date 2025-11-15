@@ -569,6 +569,18 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label class="form-label fw-bold">Compañero de Trabajo (Opcional):</label>
+                        <p class="text-muted small">Especifica si trabajó con un auxiliar o técnico ese día</p>
+                        <input type="text" 
+                            id="asist-companero" 
+                            class="form-control" 
+                            list="lista-companeros-asist"
+                            placeholder="🔍 Buscar compañero...">
+                        <datalist id="lista-companeros-asist"></datalist>
+                        <small class="text-muted">Empieza a escribir para ver sugerencias</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label fw-bold">Observaciones (Opcional):</label>
                         <textarea id="asist-observaciones" class="form-control" rows="3"></textarea>
                     </div>
@@ -672,7 +684,7 @@
             API_KEY: 'AIzaSyDB0drcnkGdqKyJhsfStbcAQ7qiBqdhc4U',
             CLIENT_ID: '965807081420-jc0gsh5umaief7s262qi22ooa64bvv14.apps.googleusercontent.com',
             SPREADSHEET_ID: '1XJg_kvifS_e3UTztx7uhaNukCsnehuIF0ZhEC7lSFhw',
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxmfaDFKa0umJzAQUY9fPI5jhFCuHHC6c6SyxedyIbYgITZ1Fk30viNu_Qzd3vD53iC/exec',
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx83CW2uLt0lvgnLaQOVtvxLrcut5Z0WJmLA0LkPosjKd2I_XOu4a0h55Dc0xxNtZWg/exec',
             HOJA_PLAN: 'BASE',
             HOJA_ASISTENCIA: 'ASISTENCIA',
             HOJA_VALORES: 'VALORES',
@@ -1410,7 +1422,11 @@
             document.getElementById('asist-hora').value = '';
             document.getElementById('asist-tipo-novedad').value = '';
             document.getElementById('asist-dias-novedad').value = '';
+            document.getElementById('asist-companero').value = '';
             document.getElementById('asist-observaciones').value = '';
+            
+            // Cargar lista de compañeros
+            cargarListaCompaneros();
             
             // OCULTAR CAMPOS CONDICIONALES
             document.getElementById('div-hora-entrada').style.display = 'none';
@@ -1419,7 +1435,43 @@
             
             modalRegistrarAsistencia.show();
         }
-
+        function cargarListaCompaneros() {
+    const datalist = document.getElementById('lista-companeros-asist');
+    datalist.innerHTML = '';
+    
+    // Crear lista combinada de todo el personal (técnicos y auxiliares)
+    const todosCompaneros = [];
+    
+    datosGlobales.planPadrino.forEach(p => {
+        // Agregar técnico
+        todosCompaneros.push({
+            nombre: p.NOMBRE,
+            cedula: p.CEDULA,
+            cargo: p.CARGO,
+            ciudad: p.CIUDAD
+        });
+        
+        // Agregar sus auxiliares
+        p.auxiliares.forEach(aux => {
+            todosCompaneros.push({
+                nombre: aux.nombre,
+                cedula: aux.cedula,
+                cargo: 'AUXILIAR',
+                ciudad: p.CIUDAD
+            });
+        });
+    });
+    
+    // Ordenar alfabéticamente
+    todosCompaneros.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    // Agregar opciones al datalist
+    todosCompaneros.forEach(comp => {
+        const option = document.createElement('option');
+        option.value = `${comp.nombre} (${comp.cedula}) - ${comp.cargo} - ${comp.ciudad}`;
+        datalist.appendChild(option);
+    });
+}
         document.getElementById('asist-estado').addEventListener('change', function() {
             const estado = this.value;
             document.getElementById('div-hora-entrada').style.display = estado === 'LLEGA_TARDE' ? 'block' : 'none';
@@ -1445,6 +1497,7 @@
             const tipoNovedad = document.getElementById('asist-tipo-novedad').value || '';
             const diasNovedad = document.getElementById('asist-dias-novedad').value || '';
             const observaciones = document.getElementById('asist-observaciones').value || '';
+            const companero = document.getElementById('asist-companero').value || '';
 
             if (estado === 'LLEGA_TARDE' && !hora) {
                 alert('Debe especificar la hora de entrada');
@@ -1497,7 +1550,14 @@
                     }
                 }
 
-                const observacionesCompletas = diasNovedad ? `${observaciones} [${diasNovedad} días]`.trim() : observaciones;
+                let observacionesCompletas = observaciones;
+if (diasNovedad) {
+    observacionesCompletas += ` [${diasNovedad} días]`;
+}
+if (companero) {
+    observacionesCompletas += ` | Compañero: ${companero}`;
+}
+observacionesCompletas = observacionesCompletas.trim();
                 const valores = [[fecha, cedula, nombre, cargo, supervisor, ciudad, estado, hora, tipoNovedad, observacionesCompletas]];
 
                 if (filaExistente > 0) {
