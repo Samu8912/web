@@ -1303,26 +1303,32 @@
             }
 
             // Agregar personal del plan padrino que no tiene registro
-            const personal = [];
-            datosGlobales.planPadrino.forEach(p => {
-                if (asistenciaMap.has(p.CEDULA)) {
-                    personal.push(asistenciaMap.get(p.CEDULA));
-                } else {
-                    personal.push({
-                        CEDULA: p.CEDULA,
-                        NOMBRE: p.NOMBRE,
-                        CARGO: p.CARGO,
-                        SUPERVISOR: p.SUPERVISOR,
-                        CIUDAD: p.CIUDAD,
-                        ESTADO: 'NO_ASISTE',
-                        HORA_ENTRADA: '',
-                        TIPO_NOVEDAD: '',
-                        OBSERVACIONES: ''
-                    });
-                }
+            // Agregar personal del plan padrino que no tiene registro
+const personal = [];
+datosGlobales.planPadrino.forEach(p => {
+    // FILTRAR: Solo incluir personal ACTIVO en asistencia
+    if (p.ESTADO !== 'ACTIVO') {
+        return; // Saltar este registro si no está activo
+    }
+    
+    if (asistenciaMap.has(p.CEDULA)) {
+        personal.push(asistenciaMap.get(p.CEDULA));
+    } else {
+        personal.push({
+            CEDULA: p.CEDULA,
+            NOMBRE: p.NOMBRE,
+            CARGO: p.CARGO,
+            SUPERVISOR: p.SUPERVISOR,
+            CIUDAD: p.CIUDAD,
+            ESTADO: 'NO_ASISTE',
+            HORA_ENTRADA: '',
+            TIPO_NOVEDAD: '',
+            OBSERVACIONES: ''
+        });
+    }
 
-                // Agregar auxiliares
-                p.auxiliares.forEach(aux => {
+    // Agregar auxiliares
+    p.auxiliares.forEach(aux => {
                     if (asistenciaMap.has(aux.cedula)) {
                         personal.push(asistenciaMap.get(aux.cedula));
                     } else {
@@ -1437,10 +1443,15 @@
     const datalist = document.getElementById('lista-companeros-asist');
     datalist.innerHTML = '';
     
-    // Crear lista combinada de todo el personal (técnicos y auxiliares)
+    // Crear lista combinada de todo el personal ACTIVO (técnicos y auxiliares)
     const todosCompaneros = [];
     
     datosGlobales.planPadrino.forEach(p => {
+        // Solo incluir personal ACTIVO
+        if (p.ESTADO !== 'ACTIVO') {
+            return;
+        }
+        
         // Agregar técnico
         todosCompaneros.push({
             nombre: p.NOMBRE,
@@ -1589,10 +1600,50 @@ observacionesCompletas = observacionesCompletas.trim();
         });
 
         async function actualizarEstadoEnBase(cedula, tipoNovedad) {
-            // Esta función ya no se usa, se reemplazó por llamarAppsScript
-            // La dejo aquí para compatibilidad pero no hace nada
-            return;
+    try {
+        console.log('Actualizando estado en BASE:', cedula, tipoNovedad);
+        
+        // Obtener datos actuales de BASE
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_PLAN}!A:R`,
+        });
+
+        const rows = response.result.values || [];
+        
+        // Buscar todas las filas con esta cédula y actualizar columna R (índice 17)
+        let filasActualizadas = 0;
+        for (let i = 1; i < rows.length; i++) {
+            const cedulaFila = rows[i][0]?.toString().trim();
+            
+            if (cedulaFila === cedula) {
+                // Asegurar que la fila tenga 18 columnas
+                while (rows[i].length < 18) {
+                    rows[i].push('');
+                }
+                
+                // Actualizar columna R (índice 17) con el tipo de novedad
+                rows[i][17] = tipoNovedad;
+                filasActualizadas++;
+            }
         }
+        
+        if (filasActualizadas > 0) {
+            // Actualizar toda la hoja con los cambios
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
+                valueInputOption: 'RAW',
+                resource: { values: rows }
+            });
+            
+            console.log(`✓ Estado actualizado en ${filasActualizadas} fila(s) de BASE`);
+        }
+    } catch (error) {
+        console.error('Error actualizando estado en BASE:', error);
+        // No lanzar error para que la asistencia se guarde aunque falle esto
+    }
+}
 
         // Modal Personal
         document.getElementById('btnAgregarPersonal').addEventListener('click', function() {
