@@ -2041,68 +2041,124 @@ observacionesCompletas = observacionesCompletas.trim();
         });
 
         function exportarTablaAExcel(idTabla, nombreArchivo) {
-            try {
-                const tabla = document.getElementById(idTabla);
-                const filas = tabla.querySelectorAll('tbody tr');
-                
-                // Verificar si hay filas visibles
-                const filasVisibles = Array.from(filas).filter(fila => fila.style.display !== 'none');
-                
-                if (filasVisibles.length === 0) {
-                    alert('No hay datos para exportar');
-                    return;
-                }
-
-                // Crear datos para Excel
-                const datos = [];
-                
-                // Obtener encabezados
-                const encabezados = [];
-                tabla.querySelectorAll('thead th').forEach(th => {
-                    encabezados.push(th.textContent.trim());
-                });
-                datos.push(encabezados);
-
-                // Obtener filas visibles
-                filasVisibles.forEach(fila => {
-                    const filaData = [];
-                    fila.querySelectorAll('td').forEach((td, index) => {
-                        // No incluir la columna de Acciones (última columna)
-                        if (index < encabezados.length - 1) {
-                            // Extraer solo texto, sin HTML
-                            let texto = td.textContent.trim();
-                            // Limpiar espacios múltiples y saltos de línea
-                            texto = texto.replace(/\s+/g, ' ');
-                            filaData.push(texto);
-                        }
-                    });
-                    datos.push(filaData);
-                });
-
-                // Crear libro de Excel
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(datos);
-
-                // Ajustar ancho de columnas
-                const colWidths = encabezados.map(() => ({wch: 15}));
-                ws['!cols'] = colWidths;
-
-                // Agregar hoja al libro
-                XLSX.utils.book_append_sheet(wb, ws, 'Datos');
-
-                // Generar nombre de archivo con fecha
-                const fecha = new Date().toISOString().split('T')[0];
-                const nombreFinal = `${nombreArchivo}_${fecha}.xlsx`;
-
-                // Descargar archivo
-                XLSX.writeFile(wb, nombreFinal);
-
-                alert(`✅ Archivo exportado: ${nombreFinal}`);
-            } catch (error) {
-                console.error('Error al exportar:', error);
-                alert('Error al exportar: ' + error.message);
-            }
+    try {
+        const tabla = document.getElementById(idTabla);
+        const filas = tabla.querySelectorAll('tbody tr');
+        
+        // Verificar si hay filas visibles
+        const filasVisibles = Array.from(filas).filter(fila => fila.style.display !== 'none');
+        
+        if (filasVisibles.length === 0) {
+            alert('No hay datos para exportar');
+            return;
         }
+
+        // Crear datos para Excel
+        const datos = [];
+        
+        // Determinar si es exportación de asistencia
+        const esAsistencia = idTabla === 'tablaAsistencia';
+        
+        // Obtener encabezados base
+        const encabezados = [];
+        tabla.querySelectorAll('thead th').forEach((th, index) => {
+            // No incluir la columna de Acciones
+            if (index < tabla.querySelectorAll('thead th').length - 1) {
+                encabezados.push(th.textContent.trim());
+            }
+        });
+        
+        // Agregar columnas adicionales para asistencia
+        if (esAsistencia) {
+            encabezados.push('Fecha Registro');
+            encabezados.push('Cédula Auxiliar');
+            encabezados.push('Nombre Auxiliar');
+        }
+        
+        datos.push(encabezados);
+
+        // Obtener fecha seleccionada (solo para asistencia)
+        const fechaRegistro = esAsistencia ? document.getElementById('fechaAsistencia').value : '';
+
+        // Obtener filas visibles
+        filasVisibles.forEach(fila => {
+            const filaData = [];
+            fila.querySelectorAll('td').forEach((td, index) => {
+                // No incluir la columna de Acciones (última columna)
+                if (index < encabezados.length - (esAsistencia ? 3 : 1)) {
+                    // Extraer solo texto, sin HTML
+                    let texto = td.textContent.trim();
+                    // Limpiar espacios múltiples y saltos de línea
+                    texto = texto.replace(/\s+/g, ' ');
+                    filaData.push(texto);
+                }
+            });
+            
+            // Agregar datos adicionales para asistencia
+            // Agregar datos adicionales para asistencia
+if (esAsistencia) {
+    // Agregar fecha de registro
+    filaData.push(fechaRegistro);
+    
+    // Extraer información de auxiliar de las observaciones
+    const observaciones = fila.querySelectorAll('td')[8]?.textContent.trim() || '';
+    let cedulaAuxiliar = '';
+    let nombreAuxiliar = '';
+    let companeroManual = '';
+    
+    // Buscar patrón: "| Compañero: NOMBRE (CEDULA) - CARGO - CIUDAD"
+    const regexCompanero = /\|\s*Compañero:\s*([^(]+)\s*\((\d+)\)\s*-\s*[^-]+\s*-\s*[^\|]+/;
+    const match = observaciones.match(regexCompanero);
+    
+    if (match) {
+        // Formato correcto encontrado - extraer datos estructurados
+        nombreAuxiliar = match[1].trim();
+        cedulaAuxiliar = match[2].trim();
+    } else {
+        // Buscar si hay algo escrito manualmente después de "Compañero:"
+        const regexManual = /\|\s*Compañero:\s*(.+?)(?:\||$)/;
+        const matchManual = observaciones.match(regexManual);
+        
+        if (matchManual) {
+            // Hay texto manual - dejarlo en observaciones y columnas vacías
+            companeroManual = matchManual[1].trim();
+            // Las columnas de cédula y nombre quedan vacías para que backoffice lo procese
+            cedulaAuxiliar = '';
+            nombreAuxiliar = '';
+        }
+    }
+    
+    filaData.push(cedulaAuxiliar);
+    filaData.push(nombreAuxiliar);
+}
+            
+            datos.push(filaData);
+        });
+
+        // Crear libro de Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(datos);
+
+        // Ajustar ancho de columnas
+        const colWidths = encabezados.map(() => ({wch: 15}));
+        ws['!cols'] = colWidths;
+
+        // Agregar hoja al libro
+        XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+
+        // Generar nombre de archivo con fecha
+        const fecha = new Date().toISOString().split('T')[0];
+        const nombreFinal = `${nombreArchivo}_${fecha}.xlsx`;
+
+        // Descargar archivo
+        XLSX.writeFile(wb, nombreFinal);
+
+        alert(`✅ Archivo exportado: ${nombreFinal}`);
+    } catch (error) {
+        console.error('Error al exportar:', error);
+        alert('Error al exportar: ' + error.message);
+    }
+}
 
         // ========== VALORES PERMITIDOS ==========
         async function cargarValores() {
