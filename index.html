@@ -158,24 +158,45 @@
             </div>
         </div>
 
-        <!-- Login -->
-        <div class="header-section" id="login-section">
-            <h1 class="text-center mb-4">🔐 Iniciar Sesión</h1>
-            <div class="row justify-content-center">
-                <div class="col-md-6 col-lg-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Usuario:</label>
-                        <input type="text" class="form-control" id="login-usuario" placeholder="Ingrese usuario">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Contraseña:</label>
-                        <input type="password" class="form-control" id="login-password" placeholder="Ingrese contraseña">
-                    </div>
-                    <button class="btn btn-primary w-100 btn-lg" id="btnLogin">Iniciar Sesión</button>
-                    <div class="alert alert-danger mt-3" id="login-error" style="display:none;"></div>
-                </div>
+<!-- Login -->
+<div class="header-section" id="login-section">
+    <h1 class="text-center mb-4">🔐 Iniciar Sesión</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Usuario:</label>
+                <select class="form-select" id="login-usuario">
+                    <option value="">Seleccionar...</option>
+                    <option value="GestionLider">Gestión Líder</option>
+                    <option value="GestionAsistencia">Gestión Asistencia</option>
+                </select>
             </div>
+            <div class="mb-3" id="password-container">
+                <label class="form-label fw-bold">Contraseña:</label>
+                <input type="password" class="form-control" id="login-password" placeholder="Ingrese contraseña">
+            </div>
+            <button class="btn btn-primary w-100 btn-lg" id="btnLogin">Continuar</button>
+            <div class="alert alert-danger mt-3" id="login-error" style="display:none;"></div>
         </div>
+    </div>
+</div>
+
+<!-- Selección de Supervisor -->
+<div class="header-section" id="selector-supervisor" style="display:none;">
+    <h1 class="text-center mb-4">👔 Seleccionar Supervisor</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Seleccione su perfil:</label>
+                <select class="form-select" id="select-supervisor" size="10">
+                    <!-- Se llenará dinámicamente -->
+                </select>
+            </div>
+            <button class="btn btn-primary w-100 btn-lg" id="btnSeleccionarSupervisor">Ingresar</button>
+            <button class="btn btn-secondary w-100 mt-2" id="btnVolverLogin">Volver</button>
+        </div>
+    </div>
+</div>
 
         <!-- Tabs -->
         <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist" style="display:none;">
@@ -211,11 +232,14 @@
                             <button id="btnExportarAsistencia" class="btn btn-success">📥 Exportar a Excel</button>
                         </div>
                         <div class="col-md-8 text-end" id="controles-supervisor" style="display:none;">
-                            <button class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#columnas-selector">
-                                👁️ Mostrar/Ocultar Columnas
-                            </button>
-                            <button id="btnExportarAsistencia2" class="btn btn-success">📥 Exportar</button>
-                        </div>
+                        <button class="btn btn-success me-2" id="btnAgregarPersonalTemporal">
+                            ➕ Agregar Personal Temporal
+                        </button>
+                        <button class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#columnas-selector">
+                            👁️ Mostrar/Ocultar Columnas
+                        </button>
+                        <button id="btnExportarAsistencia2" class="btn btn-success">📥 Exportar</button>
+                    </div>
                     </div>
                     
                     <!-- Selector de columnas para supervisor -->
@@ -277,6 +301,12 @@
                                         <label class="form-check-label" for="col-observaciones">Observaciones</label>
                                     </div>
                                 </div>
+                                <div class="col-md-3 col-6">
+    <div class="form-check">
+        <input class="form-check-input columna-toggle" type="checkbox" id="col-supervisor-respaldo" data-col="9">
+        <label class="form-check-label" for="col-supervisor-respaldo">Supervisor Respaldo</label>
+    </div>
+</div>
                             </div>
                             <small class="text-muted mt-2">* Columnas obligatorias que no se pueden ocultar</small>
                         </div>
@@ -376,7 +406,8 @@
                                 <th data-col="6">Hora Entrada</th>
                                 <th data-col="7">Tipo Novedad</th>
                                 <th data-col="8">Observaciones</th>
-                                <th data-col="9">Acciones</th>
+                                <th data-col="9">Supervisor Respaldo</th>
+                                <th data-col="10">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-asistencia">
@@ -590,7 +621,57 @@
             </div>
         </div>
     </div>
-
+<!-- Modal Agregar Personal Temporal -->
+<div class="modal fade" id="modalPersonalTemporal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">➕ Agregar Personal Temporal a Mi Lista</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>ℹ️ Información:</strong> Agrega técnicos/auxiliares de otros supervisores a tu lista de forma temporal para el día de hoy. 
+                    Aparecerás como "Supervisor de Respaldo" en el reporte.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Buscar Personal:</label>
+                    <input type="text" class="form-control" id="buscar-personal-temp" placeholder="🔍 Buscar por nombre o cédula...">
+                </div>
+                
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th>Seleccionar</th>
+                                <th>Cédula</th>
+                                <th>Nombre</th>
+                                <th>Cargo</th>
+                                <th>Supervisor Original</th>
+                                <th>Ciudad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-personal-temp">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <strong>Personal seleccionado:</strong>
+                    <div id="lista-personal-seleccionado" class="mt-2">
+                        <em class="text-muted">Ninguno seleccionado</em>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarPersonalTemporal">Agregar a Mi Lista</button>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Modal Agregar/Editar Personal -->
     <div class="modal fade" id="modalPersonal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -686,10 +767,12 @@
             HOJA_PLAN: 'BASE',
             HOJA_ASISTENCIA: 'ASISTENCIA',
             HOJA_VALORES: 'VALORES',
+            HOJA_ROTACION: 'ROTACION SUPERVISOR',
             DISCOVERY_DOCS: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
             SCOPES: 'https://www.googleapis.com/auth/spreadsheets'
         };
-
+        let personalTemporalHoy = []; // Lista de cédulas con respaldo temporal para hoy
+        const modalPersonalTemporal = new bootstrap.Modal(document.getElementById('modalPersonalTemporal'));
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
@@ -757,20 +840,142 @@
                 throw error;
             }
         }
+// ========== FUNCIONES PARA ROTACIÓN TEMPORAL ==========
+async function cargarRotacionesDia(fecha, supervisor) {
+    try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ROTACION}!A:E`,
+        });
 
-        // Credenciales de usuarios
-        const USUARIOS = {
-            analista: {
-                usuario: 'GestionLider',
-                password: '4658*',
-                rol: 'ANALISTA'
-            },
-            supervisor: {
-                usuario: 'GestionAsistencia',
-                password: '4658*',
-                rol: 'SUPERVISOR'
+        const rows = response.result.values || [];
+        const cedulas = [];
+        
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row[0] === fecha && row[1] === supervisor) {
+                cedulas.push(row[2]); // Cédula del personal
             }
-        };
+        }
+        
+        return cedulas;
+    } catch (error) {
+        console.error('Error cargando rotaciones:', error);
+        return [];
+    }
+}
+
+async function guardarRotacion(fecha, supervisor, cedula, nombre, supervisorOriginal) {
+    try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ROTACION}!A:E`,
+        });
+
+        const rows = response.result.values || [];
+        
+        // Verificar si ya existe
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i][0] === fecha && rows[i][1] === supervisor && rows[i][2] === cedula) {
+                console.log('Rotación ya existe');
+                return;
+            }
+        }
+        
+        // Agregar nuevo registro
+        await gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ROTACION}!A:E`,
+            valueInputOption: 'RAW',
+            insertDataOption: 'INSERT_ROWS',
+            resource: {
+                values: [[fecha, supervisor, cedula, nombre, supervisorOriginal]]
+            }
+        });
+        
+        console.log('Rotación guardada exitosamente');
+    } catch (error) {
+        console.error('Error guardando rotación:', error);
+        throw error;
+    }
+}
+
+async function eliminarRotacion(fecha, supervisor, cedula) {
+    try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ROTACION}!A:E`,
+        });
+
+        const rows = response.result.values || [];
+        
+        // Encontrar la fila a eliminar
+        let filaAEliminar = -1;
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i][0] === fecha && rows[i][1] === supervisor && rows[i][2] === cedula) {
+                filaAEliminar = i;
+                break;
+            }
+        }
+        
+        if (filaAEliminar === -1) {
+            console.log('Rotación no encontrada');
+            return;
+        }
+        
+        // Obtener sheetId
+        const metadataResponse = await gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID
+        });
+
+        const sheets = metadataResponse.result.sheets;
+        const rotacionSheet = sheets.find(s => s.properties.title === CONFIG.HOJA_ROTACION);
+        
+        if (!rotacionSheet) {
+            throw new Error('No se encontró la hoja ROTACION SUPERVISOR');
+        }
+
+        const sheetId = rotacionSheet.properties.sheetId;
+        
+        // Eliminar fila
+        await gapi.client.sheets.spreadsheets.batchUpdate({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            resource: {
+                requests: [{
+                    deleteDimension: {
+                        range: {
+                            sheetId: sheetId,
+                            dimension: 'ROWS',
+                            startIndex: filaAEliminar,
+                            endIndex: filaAEliminar + 1
+                        }
+                    }
+                }]
+            }
+        });
+        
+        console.log('Rotación eliminada exitosamente');
+    } catch (error) {
+        console.error('Error eliminando rotación:', error);
+        throw error;
+    }
+}
+       // Credenciales de usuarios
+const USUARIOS = {
+    analista: {
+        usuario: 'GestionLider',
+        password: '4658*',
+        rol: 'ANALISTA',
+        requierePassword: true
+    },
+    supervisor: {
+        usuario: 'GestionAsistencia',
+        password: '',
+        rol: 'SUPERVISOR',
+        requierePassword: false,
+        requiereSeleccion: true
+    }
+};
 
         // Inicializar fecha actual
         const hoy = new Date();
@@ -831,11 +1036,28 @@
                     document.getElementById('btnCerrarSesion').style.display = 'inline-block';
                     
                     // Cargar datos si hay usuario
-                    if (usuarioActual) {
-                        cargarPlanPadrino();
-                        cargarValores();
-                        iniciarActualizacionAutomatica();
-                    }
+// Cargar datos si hay usuario
+if (usuarioActual) {
+    // Si es supervisor, necesita cargar primero para filtrar
+    if (usuarioActual.rol === 'SUPERVISOR') {
+        cargarPlanPadrino().then(async () => {
+            cargarValores();
+            
+            // NUEVO: Cargar personal temporal del día actual
+            const fechaHoy = document.getElementById('fechaAsistencia').value;
+            if (fechaHoy && usuarioActual.supervisorAsignado) {
+                personalTemporalHoy = await cargarRotacionesDia(fechaHoy, usuarioActual.supervisorAsignado);
+                console.log('Personal temporal cargado desde sesión guardada:', personalTemporalHoy);
+            }
+            
+            iniciarActualizacionAutomatica();
+        });
+    } else {
+        cargarPlanPadrino();
+        cargarValores();
+        iniciarActualizacionAutomatica();
+    }
+}
                 } catch (error) {
                     console.error('Error cargando token guardado:', error);
                     localStorage.removeItem('googleToken');
@@ -862,48 +1084,207 @@
             handleSignoutClick();
         }
 
-        // Login
-        document.getElementById('btnLogin').addEventListener('click', function() {
-            const usuario = document.getElementById('login-usuario').value.trim();
-            const password = document.getElementById('login-password').value.trim();
-            
-            const errorDiv = document.getElementById('login-error');
-            errorDiv.style.display = 'none';
+// Cambiar a select en lugar de input
+document.getElementById('login-usuario').addEventListener('change', function() {
+    const usuario = this.value;
+    const passwordContainer = document.getElementById('password-container');
+    
+    if (usuario === 'GestionAsistencia') {
+        passwordContainer.style.display = 'none';
+    } else {
+        passwordContainer.style.display = 'block';
+    }
+});
 
-            // Validar credenciales
-            let usuarioValido = null;
-            for (const key in USUARIOS) {
-                if (USUARIOS[key].usuario === usuario && USUARIOS[key].password === password) {
+document.getElementById('btnLogin').addEventListener('click', async function() {
+    const usuario = document.getElementById('login-usuario').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    
+    const errorDiv = document.getElementById('login-error');
+    errorDiv.style.display = 'none';
+
+    if (!usuario) {
+        errorDiv.textContent = 'Seleccione un usuario';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Validar credenciales
+    let usuarioValido = null;
+    for (const key in USUARIOS) {
+        if (USUARIOS[key].usuario === usuario) {
+            if (USUARIOS[key].requierePassword) {
+                if (USUARIOS[key].password === password) {
                     usuarioValido = USUARIOS[key];
                     break;
                 }
+            } else {
+                usuarioValido = USUARIOS[key];
+                break;
             }
+        }
+    }
 
-            if (!usuarioValido) {
-                errorDiv.textContent = 'Usuario o contraseña incorrectos';
-                errorDiv.style.display = 'block';
-                return;
-            }
+    if (!usuarioValido) {
+        errorDiv.textContent = 'Credenciales incorrectas';
+        errorDiv.style.display = 'block';
+        return;
+    }
 
-            // Login exitoso
-            usuarioActual = usuarioValido;
+    // Si requiere selección de supervisor, cargar datos primero
+    if (usuarioValido.requiereSeleccion) {
+        try {
+            // Mostrar mensaje de carga
+            this.disabled = true;
+            this.textContent = 'Cargando...';
+            
+            // Cargar plan padrino para obtener supervisores
+            await cargarPlanPadrinoParaLogin();
+            
+            // Ahora sí mostrar selector
             document.getElementById('login-section').style.display = 'none';
-            document.getElementById('header-principal').style.display = 'block';
-            document.getElementById('mainTabs').style.display = 'flex';
-            document.getElementById('mainTabsContent').style.display = 'block';
-            document.getElementById('usuario-rol').textContent = `👤 ${usuarioValido.rol}`;
-            document.getElementById('btnCerrarSesionUsuario').style.display = 'inline-block';
+            document.getElementById('selector-supervisor').style.display = 'block';
+            cargarSupervisores();
+            
+            // Restaurar botón
+            this.disabled = false;
+            this.textContent = 'Continuar';
+            
+        } catch (error) {
+            console.error('Error cargando datos:', error);
+            errorDiv.textContent = 'Error al cargar datos. Intente nuevamente.';
+            errorDiv.style.display = 'block';
+            this.disabled = false;
+            this.textContent = 'Continuar';
+        }
+    } else {
+        // Login directo para analista
+        completarLogin(usuarioValido);
+    }
+});
 
-            // Configurar permisos según rol
-            configurarPermisos();
+// Nueva función para cargar solo la base sin renderizar
+async function cargarPlanPadrinoParaLogin() {
+    try {
+        const rows = await leerDatosSheet('leerBase');
 
-            // Guardar sesión
-            guardarSesion();
+        if (rows.length === 0) {
+            console.warn('La hoja BASE está vacía');
+            datosGlobales.planPadrino = [];
+        } else {
+            datosGlobales.planPadrino = procesarPlanPadrino(rows);
+        }
+    } catch (error) {
+        console.error('Error al cargar BASE:', error);
+        throw error;
+    }
+}
 
-            // Limpiar campos
-            document.getElementById('login-usuario').value = '';
-            document.getElementById('login-password').value = '';
-        });
+// Botón para seleccionar supervisor
+document.getElementById('btnSeleccionarSupervisor').addEventListener('click', function() {
+    const supervisorSeleccionado = document.getElementById('select-supervisor').value;
+    
+    if (!supervisorSeleccionado) {
+        alert('Seleccione un supervisor');
+        return;
+    }
+    
+    const usuarioSupervisor = {
+        usuario: 'GestionAsistencia',
+        password: '',
+        rol: 'SUPERVISOR',
+        supervisorAsignado: supervisorSeleccionado
+    };
+    
+    completarLogin(usuarioSupervisor);
+});
+
+// Botón volver
+document.getElementById('btnVolverLogin').addEventListener('click', function() {
+    document.getElementById('selector-supervisor').style.display = 'none';
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('login-usuario').value = '';
+    document.getElementById('login-password').value = '';
+});
+
+// Función para cargar lista de supervisores
+function cargarSupervisores() {
+    const select = document.getElementById('select-supervisor');
+    select.innerHTML = '';
+    
+    // Verificar que haya datos
+    if (!datosGlobales.planPadrino || datosGlobales.planPadrino.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'No hay supervisores disponibles';
+        option.disabled = true;
+        select.appendChild(option);
+        return;
+    }
+    
+    // Obtener supervisores únicos de la base de personal
+    const supervisores = [...new Set(datosGlobales.planPadrino.map(p => p.SUPERVISOR))].filter(s => s).sort();
+    
+    if (supervisores.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'No hay supervisores registrados';
+        option.disabled = true;
+        select.appendChild(option);
+        return;
+    }
+    
+    supervisores.forEach(sup => {
+        const option = document.createElement('option');
+        option.value = sup;
+        option.textContent = sup;
+        select.appendChild(option);
+    });
+}
+
+async function completarLogin(usuario) {
+    usuarioActual = usuario;
+    document.getElementById('selector-supervisor').style.display = 'none';
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('header-principal').style.display = 'block';
+    document.getElementById('mainTabs').style.display = 'flex';
+    document.getElementById('mainTabsContent').style.display = 'block';
+    
+    if (usuario.supervisorAsignado) {
+        document.getElementById('usuario-rol').textContent = `👤 SUPERVISOR: ${usuario.supervisorAsignado}`;
+    } else {
+        document.getElementById('usuario-rol').textContent = `👤 ${usuario.rol}`;
+    }
+    
+    document.getElementById('btnCerrarSesionUsuario').style.display = 'inline-block';
+
+    configurarPermisos();
+    guardarSesion();
+    
+    // Cargar datos según el rol
+    if (usuario.rol === 'ANALISTA') {
+        // Analista: cargar todo normalmente
+        cargarPlanPadrino();
+        cargarValores();
+    } else if (usuario.rol === 'SUPERVISOR') {
+        // Supervisor: los datos ya están cargados, solo cargar valores
+        cargarValores();
+        
+        // NUEVO: Cargar personal temporal del día actual
+        const fechaHoy = document.getElementById('fechaAsistencia').value;
+        if (fechaHoy && usuario.supervisorAsignado) {
+            personalTemporalHoy = await cargarRotacionesDia(fechaHoy, usuario.supervisorAsignado);
+            console.log('Personal temporal cargado al login:', personalTemporalHoy);
+        }
+        
+        // Renderizar la base si no está renderizada
+        if (datosGlobales.planPadrino.length > 0) {
+            renderizarPlanPadrino(datosGlobales.planPadrino);
+        }
+    }
+    
+    // Limpiar campos
+    document.getElementById('login-usuario').value = '';
+    document.getElementById('login-password').value = '';
+}
 
         // Permitir login con Enter
         document.getElementById('login-password').addEventListener('keypress', function(e) {
@@ -1149,44 +1530,46 @@
         }
 
         function procesarPlanPadrino(rows) {
-            if (rows.length <= 1) return [];
-            
-            const personal = [];
-            const tecnicosMap = new Map();
+    if (rows.length <= 1) return [];
+    
+    const personal = [];
+    const tecnicosMap = new Map();
 
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                const cedula = row[0]?.toString().trim();
-                if (!cedula) continue;
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const cedula = row[0]?.toString().trim();
+        if (!cedula) continue;
 
-                if (!tecnicosMap.has(cedula)) {
-                    tecnicosMap.set(cedula, {
-                        CEDULA: cedula,
-                        NOMBRE: row[1] || '',
-                        CARGO: row[2] || 'TECNICO',
-                        CARPETA: row[3] || '',
-                        CIUDAD: row[4] || '',
-                        SUPERVISOR: row[5] || '',
-                        LIDER: row[8] || '',
-                        ANALISTA: row[9] || '',
-                        ESTADO: row[17] || 'ACTIVO',
-                        auxiliares: []
-                    });
-                }
-
-                const cedulaAux = row[6]?.toString().trim();
-                const nombreAux = row[7]?.toString().trim();
-                
-                if (cedulaAux && nombreAux) {
-                    tecnicosMap.get(cedula).auxiliares.push({
-                        cedula: cedulaAux,
-                        nombre: nombreAux
-                    });
-                }
-            }
-
-            return Array.from(tecnicosMap.values());
+        if (!tecnicosMap.has(cedula)) {
+            tecnicosMap.set(cedula, {
+                CEDULA: cedula,
+                NOMBRE: row[1] || '',
+                CARGO: row[2] || 'TECNICO',
+                CARPETA: row[3] || '',
+                CIUDAD: row[4] || '',
+                SUPERVISOR: row[5] || '',
+                LIDER: row[8] || '',
+                ANALISTA: row[9] || '',
+                ESTADO: row[17] || 'ACTIVO',
+                auxiliares: []
+            });
         }
+
+        const cedulaAux = row[6]?.toString().trim();
+        const nombreAux = row[7]?.toString().trim();
+        const estadoAux = row[18] || 'ACTIVO'; // NUEVO: Columna S para estado auxiliar
+        
+        if (cedulaAux && nombreAux) {
+            tecnicosMap.get(cedula).auxiliares.push({
+                cedula: cedulaAux,
+                nombre: nombreAux,
+                estado: estadoAux // NUEVO
+            });
+        }
+    }
+
+    return Array.from(tecnicosMap.values());
+}
 
         function renderizarPlanPadrino(personal) {
             const tbody = document.getElementById('tbody-plan');
@@ -1242,7 +1625,19 @@
         }
 
         // Cargar Asistencia
-        document.getElementById('fechaAsistencia').addEventListener('change', cargarAsistencia);
+        document.getElementById('fechaAsistencia').addEventListener('change', async function() {
+    const fecha = this.value;
+    
+    // Cargar rotaciones del día si es supervisor
+    if (usuarioActual && usuarioActual.rol === 'SUPERVISOR' && usuarioActual.supervisorAsignado) {
+        personalTemporalHoy = await cargarRotacionesDia(fecha, usuarioActual.supervisorAsignado);
+        console.log('Personal temporal cargado:', personalTemporalHoy);
+    } else {
+        personalTemporalHoy = [];
+    }
+    
+    cargarAsistencia();
+});
 
         async function cargarAsistencia(silencioso = false) {
             try {
@@ -1277,47 +1672,73 @@
         }
 
         function procesarAsistencia(rows, fecha) {
-            const asistenciaMap = new Map();
+    const asistenciaMap = new Map();
+    
+    // AGREGAR: Guardar todos los registros para verificar novedades
+    datosGlobales.asistenciaCompleta = rows;
+    
+    // Cargar registros existentes del día
+    if (rows.length > 1) {
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const fechaReg = row[0];
+            const cedula = row[1]?.toString().trim();
             
-            // Cargar registros existentes del día
-            if (rows.length > 1) {
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const fechaReg = row[0];
-                    const cedula = row[1]?.toString().trim();
-                    
-                    if (fechaReg === fecha && cedula) {
-                        asistenciaMap.set(cedula, {
-                            CEDULA: cedula,
-                            NOMBRE: row[2] || '',
-                            CARGO: row[3] || '',
-                            SUPERVISOR: row[4] || '',
-                            CIUDAD: row[5] || '',
-                            ESTADO: row[6] || 'NO_ASISTE',
-                            HORA_ENTRADA: row[7] || '',
-                            TIPO_NOVEDAD: row[8] || '',
-                            OBSERVACIONES: row[9] || ''
-                        });
-                    }
-                }
-            }
+            if (fechaReg === fecha && cedula) {
+    asistenciaMap.set(cedula, {
+        CEDULA: cedula,
+        NOMBRE: row[2] || '',
+        CARGO: row[3] || '',
+        SUPERVISOR: row[4] || '',
+        CIUDAD: row[5] || '',
+        ESTADO: row[6] || 'NO_ASISTE',
+        HORA_ENTRADA: row[7] || '',
+        TIPO_NOVEDAD: row[8] || '',
+        OBSERVACIONES: row[9] || '',
+        SUPERVISOR_RESPALDO: row[10] || '' // NUEVO: Columna K
+    });
+}
+        }
+    }
 
-            // Agregar personal del plan padrino que no tiene registro
-            // Agregar personal del plan padrino que no tiene registro
-const personal = [];
-datosGlobales.planPadrino.forEach(p => {
-    // FILTRAR: Solo incluir personal ACTIVO en asistencia
-    if (p.ESTADO !== 'ACTIVO') {
-        return; // Saltar este registro si no está activo
+    // Agregar personal del plan padrino que no tiene registro
+    const personal = [];
+    datosGlobales.planPadrino.forEach(p => {
+        // FILTRAR: Solo incluir personal ACTIVO y sin novedad activa
+        if (p.ESTADO !== 'ACTIVO' || tieneNovedadActiva(p.CEDULA, fecha)) {
+            return;
+        }
+        
+        if (asistenciaMap.has(p.CEDULA)) {
+            personal.push(asistenciaMap.get(p.CEDULA));
+        } else {
+            personal.push({
+                CEDULA: p.CEDULA,
+                NOMBRE: p.NOMBRE,
+                CARGO: p.CARGO,
+                SUPERVISOR: p.SUPERVISOR,
+                CIUDAD: p.CIUDAD,
+                ESTADO: 'NO_ASISTE',
+                HORA_ENTRADA: '',
+                TIPO_NOVEDAD: '',
+                OBSERVACIONES: ''
+            });
+        }
+
+// Agregar auxiliares (también verificar novedades Y estado)
+p.auxiliares.forEach(aux => {
+    // FILTRAR: Verificar estado y novedad activa del auxiliar
+    if (aux.estado !== 'ACTIVO' || tieneNovedadActiva(aux.cedula, fecha)) {
+        return;
     }
     
-    if (asistenciaMap.has(p.CEDULA)) {
-        personal.push(asistenciaMap.get(p.CEDULA));
+    if (asistenciaMap.has(aux.cedula)) {
+        personal.push(asistenciaMap.get(aux.cedula));
     } else {
         personal.push({
-            CEDULA: p.CEDULA,
-            NOMBRE: p.NOMBRE,
-            CARGO: p.CARGO,
+            CEDULA: aux.cedula,
+            NOMBRE: aux.nombre,
+            CARGO: 'AUXILIAR',
             SUPERVISOR: p.SUPERVISOR,
             CIUDAD: p.CIUDAD,
             ESTADO: 'NO_ASISTE',
@@ -1326,33 +1747,61 @@ datosGlobales.planPadrino.forEach(p => {
             OBSERVACIONES: ''
         });
     }
+});
+    });
 
-    // Agregar auxiliares
-    p.auxiliares.forEach(aux => {
-                    if (asistenciaMap.has(aux.cedula)) {
-                        personal.push(asistenciaMap.get(aux.cedula));
-                    } else {
-                        personal.push({
-                            CEDULA: aux.cedula,
-                            NOMBRE: aux.nombre,
-                            CARGO: 'AUXILIAR',
-                            SUPERVISOR: p.SUPERVISOR,
-                            CIUDAD: p.CIUDAD,
-                            ESTADO: 'NO_ASISTE',
-                            HORA_ENTRADA: '',
-                            TIPO_NOVEDAD: '',
-                            OBSERVACIONES: ''
-                        });
-                    }
-                });
-            });
-
-            return personal;
+    return personal;
+}
+// Función para verificar si una persona tiene novedad activa en una fecha
+function tieneNovedadActiva(cedula, fechaConsulta) {
+    // Buscar en los registros de asistencia si hay novedades con días especificados
+    const registros = datosGlobales.asistenciaCompleta || [];
+    
+    for (let i = 1; i < registros.length; i++) {
+        const row = registros[i];
+        const fechaRegistro = row[0];
+        const cedulaRegistro = row[1]?.toString().trim();
+        const estado = row[6];
+        const tipoNovedad = row[8];
+        const observaciones = row[9] || '';
+        
+        if (cedulaRegistro === cedula && estado === 'NOVEDAD') {
+            // Extraer días de novedad de las observaciones
+            const matchDias = observaciones.match(/\[(\d+)\s+días?\]/);
+            if (matchDias) {
+                const diasNovedad = parseInt(matchDias[1]);
+                const fechaInicio = new Date(fechaRegistro);
+                const fechaFin = new Date(fechaInicio);
+                fechaFin.setDate(fechaFin.getDate() + diasNovedad - 1);
+                
+                const fechaConsultaObj = new Date(fechaConsulta);
+                
+                // Verificar si la fecha de consulta está dentro del rango
+                if (fechaConsultaObj >= fechaInicio && fechaConsultaObj <= fechaFin) {
+                    return true;
+                }
+            }
         }
+    }
+    
+    return false;
+}
 
-        function renderizarAsistencia(personal) {
-            const tbody = document.getElementById('tbody-asistencia');
-            tbody.innerHTML = '';
+
+function renderizarAsistencia(personal) {
+    // GUARDAR para exportación
+    datosGlobales.asistenciaActual = personal;
+    
+    // FILTRAR por supervisor si es un usuario supervisor
+    if (usuarioActual && usuarioActual.rol === 'SUPERVISOR' && usuarioActual.supervisorAsignado) {
+        personal = personal.filter(p => 
+            p.SUPERVISOR === usuarioActual.supervisorAsignado || 
+            p.SUPERVISOR_RESPALDO === usuarioActual.supervisorAsignado ||
+            personalTemporalHoy.includes(p.CEDULA) // NUEVO: incluir personal temporal
+        );
+    }
+    const tbody = document.getElementById('tbody-asistencia');
+    tbody.innerHTML = '';
 
             // Calcular estadísticas
             const total = personal.length;
@@ -1379,34 +1828,154 @@ datosGlobales.planPadrino.forEach(p => {
                 tr.dataset.cargo = p.CARGO;
                 tr.dataset.estado = p.ESTADO;
 
-                tr.innerHTML = `
-                    <td data-col="0">${p.CEDULA}</td>
-                    <td data-col="1">${p.NOMBRE}</td>
-                    <td data-col="2"><span class="badge bg-secondary">${p.CARGO}</span></td>
-                    <td data-col="3">${p.CIUDAD}</td>
-                    <td data-col="4">${p.SUPERVISOR}</td>
-                    <td data-col="5"><span class="badge estado-${p.ESTADO}">${p.ESTADO.replace('_', ' ')}</span></td>
-                    <td data-col="6">${p.HORA_ENTRADA}</td>
-                    <td data-col="7">${p.TIPO_NOVEDAD}</td>
-                    <td data-col="8">${p.OBSERVACIONES}</td>
-                    <td data-col="9">
-                        <button class="btn btn-sm btn-primary btn-registrar-asist" 
-                                data-cedula="${p.CEDULA}"
-                                data-nombre="${p.NOMBRE}"
-                                data-cargo="${p.CARGO}"
-                                data-ciudad="${p.CIUDAD}"
-                                data-supervisor="${p.SUPERVISOR}">
-                            📝 Registrar
-                        </button>
-                    </td>
-                `;
+                // Verificar si es personal temporal del supervisor
+const esPersonalTemporal = usuarioActual && usuarioActual.rol === 'SUPERVISOR' && personalTemporalHoy.includes(p.CEDULA);
+
+// Botón para quitar personal temporal
+let botonQuitar = '';
+if (esPersonalTemporal) {
+    botonQuitar = `<button class="btn btn-sm btn-danger btn-quitar-temporal mt-1" 
+                          data-cedula="${p.CEDULA}"
+                          data-nombre="${p.NOMBRE}">
+                        ❌ Quitar
+                   </button>`;
+}
+
+                    // Determinar supervisor de respaldo
+const supervisorRespaldo = p.SUPERVISOR_RESPALDO || (esPersonalTemporal && usuarioActual ? usuarioActual.supervisorAsignado : '');
+
+tr.innerHTML = `
+    <td data-col="0">${p.CEDULA}</td>
+    <td data-col="1">${p.NOMBRE}${esPersonalTemporal ? ' <span class="badge bg-warning text-dark">TEMPORAL</span>' : ''}</td>
+    <td data-col="2"><span class="badge bg-secondary">${p.CARGO}</span></td>
+    <td data-col="3">${p.CIUDAD}</td>
+    <td data-col="4">${p.SUPERVISOR}</td>
+    <td data-col="5"><span class="badge estado-${p.ESTADO}">${p.ESTADO.replace('_', ' ')}</span></td>
+    <td data-col="6">${p.HORA_ENTRADA}</td>
+    <td data-col="7">${p.TIPO_NOVEDAD}</td>
+    <td data-col="8">${p.OBSERVACIONES}</td>
+    <td data-col="9">${supervisorRespaldo ? `<span class="badge bg-info">${supervisorRespaldo}</span>` : '<span class="text-muted">-</span>'}</td>
+    <td data-col="10">
+                            <button class="btn btn-sm btn-primary btn-registrar-asist" 
+                                    data-cedula="${p.CEDULA}"
+                                    data-nombre="${p.NOMBRE}"
+                                    data-cargo="${p.CARGO}"
+                                    data-ciudad="${p.CIUDAD}"
+                                    data-supervisor="${p.SUPERVISOR}">
+                                📝 Registrar
+                            </button>
+                            ${botonQuitar}
+                        </td>
+                    `;
                 tbody.appendChild(tr);
             });
 
             document.querySelectorAll('.btn-registrar-asist').forEach(btn => {
                 btn.addEventListener('click', abrirModalRegistrar);
             });
+// Event listener para quitar personal temporal
+// Event listener para quitar personal temporal
+document.querySelectorAll('.btn-quitar-temporal').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const cedula = this.dataset.cedula;
+        const nombre = this.dataset.nombre;
+        
+        if (!confirm(`¿Quitar a ${nombre} de tu lista temporal?\n\nEsto eliminará el registro de asistencia del día si no tiene ningún estado registrado, o quitará tu nombre como supervisor de respaldo si ya tiene asistencia registrada.`)) return;
+        
+        try {
+            const fecha = document.getElementById('fechaAsistencia').value;
+            const supervisor = usuarioActual.supervisorAsignado;
+            
+            // 1. Eliminar de la hoja ROTACION SUPERVISOR
+            await eliminarRotacion(fecha, supervisor, cedula);
+            
+            // 2. Buscar y actualizar/eliminar en ASISTENCIA
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A:K`,
+            });
 
+            const rows = response.result.values || [];
+            let filaEncontrada = -1;
+            let registroExistente = null;
+            
+            // Buscar el registro en ASISTENCIA
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i][0] === fecha && rows[i][1] === cedula) {
+                    filaEncontrada = i;
+                    registroExistente = rows[i];
+                    break;
+                }
+            }
+            
+            if (filaEncontrada > 0 && registroExistente) {
+                const estado = registroExistente[6] || 'NO_ASISTE';
+                const tieneAsistenciaRegistrada = estado !== 'NO_ASISTE' && estado !== '';
+                
+                if (tieneAsistenciaRegistrada) {
+                    // Si ya tiene asistencia registrada, solo quitar supervisor de respaldo
+                    console.log('Personal tiene asistencia registrada, solo quitando supervisor de respaldo');
+                    rows[filaEncontrada][10] = ''; // Limpiar columna K (SUPERVISOR_RESPALDO)
+                    
+                    // Actualizar la fila
+                    await gapi.client.sheets.spreadsheets.values.update({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID,
+                        range: `${CONFIG.HOJA_ASISTENCIA}!A${filaEncontrada + 1}:K${filaEncontrada + 1}`,
+                        valueInputOption: 'RAW',
+                        resource: { values: [rows[filaEncontrada]] }
+                    });
+                } else {
+                    // Si NO tiene asistencia registrada (está en NO_ASISTE), eliminar toda la fila
+                    console.log('Personal sin asistencia registrada, eliminando fila completa');
+                    
+                    // Obtener sheetId de la hoja ASISTENCIA
+                    const metadataResponse = await gapi.client.sheets.spreadsheets.get({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID
+                    });
+
+                    const sheets = metadataResponse.result.sheets;
+                    const asistenciaSheet = sheets.find(s => s.properties.title === CONFIG.HOJA_ASISTENCIA);
+                    
+                    if (!asistenciaSheet) {
+                        throw new Error('No se encontró la hoja ASISTENCIA');
+                    }
+
+                    const sheetId = asistenciaSheet.properties.sheetId;
+                    
+                    // Eliminar la fila
+                    await gapi.client.sheets.spreadsheets.batchUpdate({
+                        spreadsheetId: CONFIG.SPREADSHEET_ID,
+                        resource: {
+                            requests: [{
+                                deleteDimension: {
+                                    range: {
+                                        sheetId: sheetId,
+                                        dimension: 'ROWS',
+                                        startIndex: filaEncontrada,
+                                        endIndex: filaEncontrada + 1
+                                    }
+                                }
+                            }]
+                        }
+                    });
+                }
+            } else {
+                console.log('No se encontró registro en ASISTENCIA para esta persona en esta fecha');
+            }
+            
+            // 3. Eliminar de la lista local
+            personalTemporalHoy = personalTemporalHoy.filter(c => c !== cedula);
+            
+            alert('✅ Personal eliminado de tu lista temporal correctamente');
+            
+            // 4. Recargar asistencia
+            await cargarAsistencia();
+        } catch (error) {
+            console.error('Error quitando personal temporal:', error);
+            alert('❌ Error al quitar personal: ' + error.message);
+        }
+    });
+});
             // Aplicar visibilidad de columnas si es supervisor
             if (usuarioActual && usuarioActual.rol === 'SUPERVISOR') {
                 aplicarColumnasVisibles();
@@ -1481,6 +2050,291 @@ datosGlobales.planPadrino.forEach(p => {
         datalist.appendChild(option);
     });
 }
+// Abrir modal de personal temporal
+document.getElementById('btnAgregarPersonalTemporal').addEventListener('click', function() {
+    if (!usuarioActual || !usuarioActual.supervisorAsignado) {
+        alert('Error: No se detectó supervisor asignado');
+        return;
+    }
+    
+    cargarPersonalDisponibleTemporal();
+    modalPersonalTemporal.show();
+});
+
+// Cargar personal de otros supervisores
+function cargarPersonalDisponibleTemporal() {
+    const tbody = document.getElementById('tbody-personal-temp');
+    tbody.innerHTML = '';
+    
+    const miSupervisor = usuarioActual.supervisorAsignado;
+    const personalOtrosSupervisores = [];
+    
+    // Obtener todos los técnicos de otros supervisores
+    datosGlobales.planPadrino.forEach(p => {
+        if (p.ESTADO === 'ACTIVO' && p.SUPERVISOR !== miSupervisor) {
+            personalOtrosSupervisores.push({
+                cedula: p.CEDULA,
+                nombre: p.NOMBRE,
+                cargo: p.CARGO,
+                supervisor: p.SUPERVISOR,
+                ciudad: p.CIUDAD
+            });
+            
+            // Agregar auxiliares de ese técnico
+            p.auxiliares.forEach(aux => {
+                if (aux.estado === 'ACTIVO') {
+                    personalOtrosSupervisores.push({
+                        cedula: aux.cedula,
+                        nombre: aux.nombre,
+                        cargo: 'AUXILIAR',
+                        supervisor: p.SUPERVISOR,
+                        ciudad: p.CIUDAD
+                    });
+                }
+            });
+        }
+    });
+    
+    // Ordenar alfabéticamente
+    personalOtrosSupervisores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    // Renderizar tabla
+    personalOtrosSupervisores.forEach(persona => {
+        const yaSeleccionado = personalTemporalHoy.includes(persona.cedula);
+        
+        const tr = document.createElement('tr');
+        tr.className = 'personal-temp-row';
+        tr.dataset.cedula = persona.cedula;
+        tr.dataset.nombre = persona.nombre.toLowerCase();
+        tr.dataset.supervisor = persona.supervisor.toLowerCase();
+        
+        tr.innerHTML = `
+            <td>
+                <input type="checkbox" class="form-check-input checkbox-personal-temp" 
+                       value="${persona.cedula}" 
+                       data-nombre="${persona.nombre}"
+                       data-supervisor="${persona.supervisor}"
+                       ${yaSeleccionado ? 'checked' : ''}>
+            </td>
+            <td>${persona.cedula}</td>
+            <td>${persona.nombre}</td>
+            <td><span class="badge bg-secondary">${persona.cargo}</span></td>
+            <td>${persona.supervisor}</td>
+            <td>${persona.ciudad}</td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+    
+    // Event listener para búsqueda
+    document.getElementById('buscar-personal-temp').addEventListener('input', filtrarPersonalTemporal);
+    
+    // Event listeners para checkboxes
+    document.querySelectorAll('.checkbox-personal-temp').forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarListaSeleccionados);
+    });
+    
+    actualizarListaSeleccionados();
+}
+
+// Filtrar personal temporal
+function filtrarPersonalTemporal() {
+    const busqueda = document.getElementById('buscar-personal-temp').value.toLowerCase();
+    
+    document.querySelectorAll('.personal-temp-row').forEach(fila => {
+        const nombre = fila.dataset.nombre;
+        const cedula = fila.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const supervisor = fila.dataset.supervisor;
+        
+        const visible = nombre.includes(busqueda) || cedula.includes(busqueda) || supervisor.includes(busqueda);
+        fila.style.display = visible ? '' : 'none';
+    });
+}
+
+// Actualizar lista de seleccionados
+function actualizarListaSeleccionados() {
+    const checkboxes = document.querySelectorAll('.checkbox-personal-temp:checked');
+    const container = document.getElementById('lista-personal-seleccionado');
+    
+    if (checkboxes.length === 0) {
+        container.innerHTML = '<em class="text-muted">Ninguno seleccionado</em>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    checkboxes.forEach(checkbox => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-primary me-2 mb-2';
+        badge.style.fontSize = '0.9rem';
+        badge.innerHTML = `${checkbox.dataset.nombre} <small>(${checkbox.dataset.supervisor})</small>`;
+        container.appendChild(badge);
+    });
+}
+
+// Guardar personal temporal
+document.getElementById('btnGuardarPersonalTemporal').addEventListener('click', async function() {
+    const checkboxes = document.querySelectorAll('.checkbox-personal-temp:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Seleccione al menos un personal');
+        return;
+    }
+    
+    const fecha = document.getElementById('fechaAsistencia').value;
+    const miSupervisor = usuarioActual.supervisorAsignado;
+    
+    try {
+        this.disabled = true;
+        this.textContent = 'Guardando...';
+        
+        // Obtener registros actuales de asistencia
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ASISTENCIA}!A:K`,
+        });
+
+        const rows = response.result.values || [];
+        
+        // Asegurar encabezados
+        if (rows.length === 0) {
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A1:K1`,
+                valueInputOption: 'RAW',
+                resource: {
+                    values: [['FECHA', 'CEDULA', 'NOMBRE', 'CARGO', 'SUPERVISOR', 'CIUDAD', 'ESTADO', 'HORA_ENTRADA', 'TIPO_NOVEDAD', 'OBSERVACIONES', 'SUPERVISOR_RESPALDO']]
+                }
+            });
+        }
+        
+        const nuevosRegistros = [];
+        
+        for (const checkbox of checkboxes) {
+            const cedula = checkbox.value;
+            
+            // Verificar si ya existe registro para hoy
+            const existe = rows.some((row, idx) => 
+                idx > 0 && row[0] === fecha && row[1] === cedula
+            );
+            
+            if (!existe) {
+                // Buscar datos completos del personal
+                let persona = null;
+                
+                for (const p of datosGlobales.planPadrino) {
+                    if (p.CEDULA === cedula) {
+                        persona = {
+                            cedula: p.CEDULA,
+                            nombre: p.NOMBRE,
+                            cargo: p.CARGO,
+                            supervisor: p.SUPERVISOR,
+                            ciudad: p.CIUDAD
+                        };
+                        break;
+                    }
+                    
+                    // Buscar en auxiliares
+                    for (const aux of p.auxiliares) {
+                        if (aux.cedula === cedula) {
+                            persona = {
+                                cedula: aux.cedula,
+                                nombre: aux.nombre,
+                                cargo: 'AUXILIAR',
+                                supervisor: p.SUPERVISOR,
+                                ciudad: p.CIUDAD
+                            };
+                            break;
+                        }
+                    }
+                    if (persona) break;
+                }
+                
+                if (persona) {
+                    nuevosRegistros.push([
+                        fecha,
+                        persona.cedula,
+                        persona.nombre,
+                        persona.cargo,
+                        persona.supervisor,
+                        persona.ciudad,
+                        'NO_ASISTE',
+                        '',
+                        '',
+                        '',
+                        miSupervisor // Supervisor de respaldo
+                    ]);
+                    
+                    // Guardar en ROTACION SUPERVISOR
+                    await guardarRotacion(fecha, miSupervisor, persona.cedula, persona.nombre, persona.supervisor);
+                    personalTemporalHoy.push(cedula);
+                }
+            } else {
+                // Actualizar supervisor de respaldo en registro existente
+                for (let i = 1; i < rows.length; i++) {
+                    if (rows[i][0] === fecha && rows[i][1] === cedula) {
+                        rows[i][10] = miSupervisor; // Agregar respaldo
+                    }
+                }
+                
+                // Guardar en ROTACION SUPERVISOR
+                let persona = null;
+                for (const p of datosGlobales.planPadrino) {
+                    if (p.CEDULA === cedula) {
+                        persona = { cedula: p.CEDULA, nombre: p.NOMBRE, supervisor: p.SUPERVISOR };
+                        break;
+                    }
+                    for (const aux of p.auxiliares) {
+                        if (aux.cedula === cedula) {
+                            persona = { cedula: aux.cedula, nombre: aux.nombre, supervisor: p.SUPERVISOR };
+                            break;
+                        }
+                    }
+                    if (persona) break;
+                }
+                
+                if (persona) {
+                    await guardarRotacion(fecha, miSupervisor, persona.cedula, persona.nombre, persona.supervisor);
+                }
+                
+                personalTemporalHoy.push(cedula);
+            }
+        }
+        
+        // Agregar nuevos registros si hay
+        if (nuevosRegistros.length > 0) {
+            await gapi.client.sheets.spreadsheets.values.append({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A:K`,
+                valueInputOption: 'RAW',
+                insertDataOption: 'INSERT_ROWS',
+                resource: { values: nuevosRegistros }
+            });
+        }
+        
+        // Actualizar registros existentes con respaldo
+        if (rows.length > 1) {
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A1:K${rows.length}`,
+                valueInputOption: 'RAW',
+                resource: { values: rows }
+            });
+        }
+        
+        alert(`✅ Se agregaron ${checkboxes.length} personas a tu lista temporal`);
+        modalPersonalTemporal.hide();
+        
+        // Recargar asistencia
+        await cargarAsistencia();
+        
+    } catch (error) {
+        console.error('Error guardando personal temporal:', error);
+        alert('Error al guardar: ' + error.message);
+    } finally {
+        this.disabled = false;
+        this.textContent = 'Agregar a Mi Lista';
+    }
+});
         document.getElementById('asist-estado').addEventListener('change', function() {
             const estado = this.value;
             document.getElementById('div-hora-entrada').style.display = estado === 'LLEGA_TARDE' ? 'block' : 'none';
@@ -1603,36 +2457,40 @@ observacionesCompletas = observacionesCompletas.trim();
     try {
         console.log('Actualizando estado en BASE:', cedula, tipoNovedad);
         
-        // Obtener datos actuales de BASE
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
-            range: `${CONFIG.HOJA_PLAN}!A:R`,
+            range: `${CONFIG.HOJA_PLAN}!A:S`, // CAMBIAR a columna S
         });
 
         const rows = response.result.values || [];
         
-        // Buscar todas las filas con esta cédula y actualizar columna R (índice 17)
         let filasActualizadas = 0;
         for (let i = 1; i < rows.length; i++) {
-            const cedulaFila = rows[i][0]?.toString().trim();
+            const cedulaTecnico = rows[i][0]?.toString().trim();
+            const cedulaAux = rows[i][6]?.toString().trim();
             
-            if (cedulaFila === cedula) {
-                // Asegurar que la fila tenga 18 columnas
-                while (rows[i].length < 18) {
-                    rows[i].push('');
-                }
-                
-                // Actualizar columna R (índice 17) con el tipo de novedad
-                rows[i][17] = tipoNovedad;
+            // Asegurar que la fila tenga 19 columnas (hasta S)
+            while (rows[i].length < 19) {
+                rows[i].push('');
+            }
+            
+            // Actualizar si coincide con técnico
+            if (cedulaTecnico === cedula) {
+                rows[i][17] = tipoNovedad; // Columna R para técnico
+                filasActualizadas++;
+            }
+            
+            // Actualizar si coincide con auxiliar
+            if (cedulaAux === cedula) {
+                rows[i][18] = tipoNovedad; // Columna S para auxiliar
                 filasActualizadas++;
             }
         }
         
         if (filasActualizadas > 0) {
-            // Actualizar toda la hoja con los cambios
             await gapi.client.sheets.spreadsheets.values.update({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.HOJA_PLAN}!A1:R${rows.length}`,
+                range: `${CONFIG.HOJA_PLAN}!A1:S${rows.length}`, // CAMBIAR a columna S
                 valueInputOption: 'RAW',
                 resource: { values: rows }
             });
@@ -1641,7 +2499,6 @@ observacionesCompletas = observacionesCompletas.trim();
         }
     } catch (error) {
         console.error('Error actualizando estado en BASE:', error);
-        // No lanzar error para que la asistencia se guarde aunque falle esto
     }
 }
 
@@ -2069,11 +2926,12 @@ observacionesCompletas = observacionesCompletas.trim();
         });
         
         // Agregar columnas adicionales para asistencia
-        if (esAsistencia) {
-            encabezados.push('Fecha Registro');
-            encabezados.push('Cédula Auxiliar');
-            encabezados.push('Nombre Auxiliar');
-        }
+if (esAsistencia) {
+    encabezados.push('Fecha Registro');
+    encabezados.push('Supervisor de Respaldo');
+    encabezados.push('Cédula Auxiliar');
+    encabezados.push('Nombre Auxiliar');
+}
         
         datos.push(encabezados);
 
@@ -2085,7 +2943,7 @@ observacionesCompletas = observacionesCompletas.trim();
             const filaData = [];
             fila.querySelectorAll('td').forEach((td, index) => {
                 // No incluir la columna de Acciones (última columna)
-                if (index < encabezados.length - (esAsistencia ? 3 : 1)) {
+                if (index < encabezados.length - (esAsistencia ? 4 : 1)) {
                     // Extraer solo texto, sin HTML
                     let texto = td.textContent.trim();
                     // Limpiar espacios múltiples y saltos de línea
@@ -2096,9 +2954,31 @@ observacionesCompletas = observacionesCompletas.trim();
             
             // Agregar datos adicionales para asistencia
             // Agregar datos adicionales para asistencia
+// Agregar datos adicionales para asistencia
 if (esAsistencia) {
     // Agregar fecha de registro
     filaData.push(fechaRegistro);
+    
+    // NUEVO: Buscar supervisor de respaldo en la hoja ROTACION SUPERVISOR
+    const cedula = fila.querySelectorAll('td')[0]?.textContent.trim() || '';
+    let supervisorRespaldo = '';
+    
+    // Buscar en los datos de asistencia actuales si tiene supervisor de respaldo
+    if (datosGlobales.asistenciaActual) {
+        const personaAsist = datosGlobales.asistenciaActual.find(p => p.CEDULA === cedula);
+        if (personaAsist && personaAsist.SUPERVISOR_RESPALDO) {
+            supervisorRespaldo = personaAsist.SUPERVISOR_RESPALDO;
+        }
+    }
+    
+    // Si no se encontró en memoria, verificar si está en la lista temporal del día
+    if (!supervisorRespaldo && usuarioActual && usuarioActual.rol === 'SUPERVISOR') {
+        if (personalTemporalHoy.includes(cedula)) {
+            supervisorRespaldo = usuarioActual.supervisorAsignado || '';
+        }
+    }
+    
+    filaData.push(supervisorRespaldo);
     
     // Extraer información de auxiliar de las observaciones
     const observaciones = fila.querySelectorAll('td')[8]?.textContent.trim() || '';
