@@ -1827,7 +1827,9 @@ async function completarLogin(usuario) {
         HORA_ENTRADA: row[7] || '',
         TIPO_NOVEDAD: row[8] || '',
         OBSERVACIONES: row[9] || '',
-        SUPERVISOR_RESPALDO: row[10] || '' // NUEVO: Columna K
+        SUPERVISOR_RESPALDO: row[10] || '', // Columna K
+        DIAS_NOVEDAD: row[11] || '', // NUEVO: Columna L
+        FECHA_INICIO_INCAPACIDAD: row[12] || '' // NUEVO: Columna M
     });
 }
         }
@@ -1885,33 +1887,28 @@ p.auxiliares.forEach(aux => {
     return personal;
 }
 // Función para verificar si una persona tiene novedad activa en una fecha
+// Función para verificar si una persona tiene novedad activa en una fecha
 function tieneNovedadActiva(cedula, fechaConsulta) {
-    // Buscar en los registros de asistencia si hay novedades con días especificados
     const registros = datosGlobales.asistenciaCompleta || [];
     
     for (let i = 1; i < registros.length; i++) {
         const row = registros[i];
-        const fechaRegistro = row[0];
         const cedulaRegistro = row[1]?.toString().trim();
         const estado = row[6];
-        const tipoNovedad = row[8];
-        const observaciones = row[9] || '';
+        const diasNovedad = parseInt(row[11]) || 0; // NUEVO: Columna L
+        const fechaInicioIncapacidad = row[12]; // NUEVO: Columna M
         
-        if (cedulaRegistro === cedula && estado === 'NOVEDAD') {
-            // Extraer días de novedad de las observaciones
-            const matchDias = observaciones.match(/\[(\d+)\s+días?\]/);
-            if (matchDias) {
-                const diasNovedad = parseInt(matchDias[1]);
-                const fechaInicio = new Date(fechaRegistro);
-                const fechaFin = new Date(fechaInicio);
-                fechaFin.setDate(fechaFin.getDate() + diasNovedad - 1);
-                
-                const fechaConsultaObj = new Date(fechaConsulta);
-                
-                // Verificar si la fecha de consulta está dentro del rango
-                if (fechaConsultaObj >= fechaInicio && fechaConsultaObj <= fechaFin) {
-                    return true;
-                }
+        if (cedulaRegistro === cedula && estado === 'NOVEDAD' && diasNovedad > 0 && fechaInicioIncapacidad) {
+            // Convertir fechas
+            const fechaInicio = new Date(fechaInicioIncapacidad);
+            const fechaFin = new Date(fechaInicio);
+            fechaFin.setDate(fechaFin.getDate() + diasNovedad - 1);
+            
+            const fechaConsultaObj = new Date(fechaConsulta);
+            
+            // Verificar si la fecha de consulta está dentro del rango
+            if (fechaConsultaObj >= fechaInicio && fechaConsultaObj <= fechaFin) {
+                return true;
             }
         }
     }
@@ -2481,109 +2478,164 @@ document.getElementById('btnGuardarPersonalTemporal').addEventListener('click', 
         });
 
         document.getElementById('btnGuardarAsistencia').addEventListener('click', async function() {
-            const fecha = document.getElementById('fechaAsistencia').value;
-            const cedula = document.getElementById('asist-cedula').value;
-            const nombre = document.getElementById('asist-nombre').value;
-            const cargo = document.getElementById('asist-cargo').value;
-            const ciudad = document.getElementById('asist-ciudad').value;
-            const supervisor = document.getElementById('asist-supervisor').value;
-            const estado = document.getElementById('asist-estado').value;
-            const hora = document.getElementById('asist-hora').value || '';
-            const tipoNovedad = document.getElementById('asist-tipo-novedad').value || '';
-            const diasNovedad = document.getElementById('asist-dias-novedad').value || '';
-            const observaciones = document.getElementById('asist-observaciones').value || '';
-            const companero = document.getElementById('asist-companero').value || '';
+    const fecha = document.getElementById('fechaAsistencia').value;
+    const cedula = document.getElementById('asist-cedula').value;
+    const nombre = document.getElementById('asist-nombre').value;
+    const cargo = document.getElementById('asist-cargo').value;
+    const ciudad = document.getElementById('asist-ciudad').value;
+    const supervisor = document.getElementById('asist-supervisor').value;
+    const estado = document.getElementById('asist-estado').value;
+    const hora = document.getElementById('asist-hora').value || '';
+    const tipoNovedad = document.getElementById('asist-tipo-novedad').value || '';
+    const diasNovedad = parseInt(document.getElementById('asist-dias-novedad').value) || '';
+    const observaciones = document.getElementById('asist-observaciones').value || '';
+    const companero = document.getElementById('asist-companero').value || '';
 
-            if (estado === 'LLEGA_TARDE' && !hora) {
-                alert('Debe especificar la hora de entrada');
-                return;
-            }
+    if (estado === 'LLEGA_TARDE' && !hora) {
+        alert('Debe especificar la hora de entrada');
+        return;
+    }
 
-            if (estado === 'NOVEDAD' && !tipoNovedad) {
-                alert('Debe especificar el tipo de novedad');
-                return;
-            }
+    if (estado === 'NOVEDAD' && !tipoNovedad) {
+        alert('Debe especificar el tipo de novedad');
+        return;
+    }
 
-            const novedadesConDias = ['INCAPACIDAD / EPS', 'VACACIONES', 'CALAMIDAD / LUTO'];
-            if (estado === 'NOVEDAD' && novedadesConDias.includes(tipoNovedad) && !diasNovedad) {
-                alert('Debe especificar el número de días');
-                return;
-            }
+    const novedadesConDias = ['INCAPACIDAD / EPS', 'VACACIONES', 'CALAMIDAD / LUTO'];
+    if (estado === 'NOVEDAD' && novedadesConDias.includes(tipoNovedad) && !diasNovedad) {
+        alert('Debe especificar el número de días');
+        return;
+    }
 
-            try {
-                // Actualizar estado en BASE si es novedad
-                if (estado === 'NOVEDAD') {
-                    await actualizarEstadoEnBase(cedula, tipoNovedad);
-                }
+    try {
+        // Actualizar estado en BASE si es novedad
+        if (estado === 'NOVEDAD') {
+            await actualizarEstadoEnBase(cedula, tipoNovedad);
+        }
 
-                // Buscar si ya existe registro
-                const response = await gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: CONFIG.SPREADSHEET_ID,
-                    range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
-                });
-
-                const rows = response.result.values || [];
-                
-                // Asegurar que existan encabezados
-                if (rows.length === 0) {
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A1:J1`,
-                        valueInputOption: 'RAW',
-                        resource: {
-                            values: [['FECHA', 'CEDULA', 'NOMBRE', 'CARGO', 'SUPERVISOR', 'CIUDAD', 'ESTADO', 'HORA_ENTRADA', 'TIPO_NOVEDAD', 'OBSERVACIONES']]
-                        }
-                    });
-                }
-                
-                let filaExistente = -1;
-
-                for (let i = 1; i < rows.length; i++) {
-                    if (rows[i][0] === fecha && rows[i][1] === cedula) {
-                        filaExistente = i + 1;
-                        break;
-                    }
-                }
-
-                let observacionesCompletas = observaciones;
-if (diasNovedad) {
-    observacionesCompletas += ` [${diasNovedad} días]`;
-}
-if (companero) {
-    observacionesCompletas += ` | Compañero: ${companero}`;
-}
-observacionesCompletas = observacionesCompletas.trim();
-                const valores = [[fecha, cedula, nombre, cargo, supervisor, ciudad, estado, hora, tipoNovedad, observacionesCompletas]];
-
-                if (filaExistente > 0) {
-                    // Actualizar - usar rango explícito A a J
-                    await gapi.client.sheets.spreadsheets.values.update({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A${filaExistente}:J${filaExistente}`,
-                        valueInputOption: 'RAW',
-                        resource: { values: valores }
-                    });
-                } else {
-                    // Agregar - usar append pero con rango explícito
-                    await gapi.client.sheets.spreadsheets.values.append({
-                        spreadsheetId: CONFIG.SPREADSHEET_ID,
-                        range: `${CONFIG.HOJA_ASISTENCIA}!A:J`,
-                        valueInputOption: 'RAW',
-                        insertDataOption: 'INSERT_ROWS',
-                        resource: { values: valores }
-                    });
-                }
-
-                alert('✅ Asistencia registrada correctamente');
-                modalRegistrarAsistencia.hide();
-                await cargarAsistencia();
-
-            } catch (error) {
-                console.error('Error completo al guardar:', error);
-                console.error('Detalle del error:', error.result || error.message || error);
-                alert('Error al guardar: ' + (error.result?.error?.message || error.message || 'Error desconocido. Revisa la consola para más detalles.'));
-            }
+        // Buscar si ya existe registro
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${CONFIG.HOJA_ASISTENCIA}!A:M`, // AMPLIADO: hasta columna M
         });
+
+        const rows = response.result.values || [];
+        
+        // Asegurar que existan encabezados
+        if (rows.length === 0) {
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A1:M1`,
+                valueInputOption: 'RAW',
+                resource: {
+                    values: [['FECHA', 'CEDULA', 'NOMBRE', 'CARGO', 'SUPERVISOR', 'CIUDAD', 'ESTADO', 
+                             'HORA_ENTRADA', 'TIPO_NOVEDAD', 'OBSERVACIONES', 'SUPERVISOR_RESPALDO',
+                             'DIAS_NOVEDAD', 'FECHA_INICIO_INCAPACIDAD']] // NUEVAS COLUMNAS L y M
+                }
+            });
+        }
+        
+        // NUEVO: Si es incapacidad con múltiples días, crear registros para cada día
+        if (estado === 'NOVEDAD' && novedadesConDias.includes(tipoNovedad) && diasNovedad > 1) {
+            const valoresMultiples = [];
+            const [year, month, day] = fecha.split('-');
+            const fechaInicio = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            const fechaInicioStr = fecha; // Guardar fecha de inicio
+            
+            for (let i = 0; i < diasNovedad; i++) {
+                const fechaActual = new Date(fechaInicio);
+                fechaActual.setDate(fechaActual.getDate() + i);
+                const fechaStr = fechaActual.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+                
+                let observacionesCompletas = observaciones;
+                observacionesCompletas += ` [Día ${i + 1} de ${diasNovedad}]`;
+                if (companero) {
+                    observacionesCompletas += ` | Compañero: ${companero}`;
+                }
+                observacionesCompletas = observacionesCompletas.trim();
+                
+                valoresMultiples.push([
+                    fechaStr, cedula, nombre, cargo, supervisor, ciudad, estado, hora, tipoNovedad, 
+                    observacionesCompletas, '', diasNovedad, fechaInicioStr
+                ]);
+            }
+            
+            // Eliminar registros existentes para estas fechas/cédula
+            for (let i = rows.length - 1; i >= 1; i--) {
+                const fechaRow = rows[i][0];
+                const cedulaRow = rows[i][1];
+                
+                // Verificar si esta fila debe ser reemplazada
+                const debeReemplazar = valoresMultiples.some(v => v[0] === fechaRow && v[1] === cedulaRow);
+                if (debeReemplazar) {
+                    rows.splice(i, 1);
+                }
+            }
+            
+            // Agregar los nuevos registros
+            rows.push(...valoresMultiples);
+            
+            // Actualizar todo el sheet
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: `${CONFIG.HOJA_ASISTENCIA}!A1:M${rows.length}`,
+                valueInputOption: 'RAW',
+                resource: { values: rows }
+            });
+            
+            alert(`✅ Incapacidad registrada para ${diasNovedad} días`);
+        } else {
+            // Flujo normal para un solo día o sin días especificados
+            let filaExistente = -1;
+
+            for (let i = 1; i < rows.length; i++) {
+                if (rows[i][0] === fecha && rows[i][1] === cedula) {
+                    filaExistente = i + 1;
+                    break;
+                }
+            }
+
+            let observacionesCompletas = observaciones;
+            if (diasNovedad) {
+                observacionesCompletas += ` [${diasNovedad} día(s)]`;
+            }
+            if (companero) {
+                observacionesCompletas += ` | Compañero: ${companero}`;
+            }
+            observacionesCompletas = observacionesCompletas.trim();
+            
+            const valores = [[fecha, cedula, nombre, cargo, supervisor, ciudad, estado, hora, tipoNovedad, 
+                            observacionesCompletas, '', diasNovedad || '', fecha]]; // NUEVAS COLUMNAS
+
+            if (filaExistente > 0) {
+                await gapi.client.sheets.spreadsheets.values.update({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_ASISTENCIA}!A${filaExistente}:M${filaExistente}`,
+                    valueInputOption: 'RAW',
+                    resource: { values: valores }
+                });
+            } else {
+                await gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: CONFIG.SPREADSHEET_ID,
+                    range: `${CONFIG.HOJA_ASISTENCIA}!A:M`,
+                    valueInputOption: 'RAW',
+                    insertDataOption: 'INSERT_ROWS',
+                    resource: { values: valores }
+                });
+            }
+            
+            alert('✅ Asistencia registrada correctamente');
+        }
+
+        modalRegistrarAsistencia.hide();
+        await cargarAsistencia();
+
+    } catch (error) {
+        console.error('Error completo al guardar:', error);
+        console.error('Detalle del error:', error.result || error.message || error);
+        alert('Error al guardar: ' + (error.result?.error?.message || error.message || 'Error desconocido. Revisa la consola para más detalles.'));
+    }
+});
 
         async function actualizarEstadoEnBase(cedula, tipoNovedad) {
     try {
