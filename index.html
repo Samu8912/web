@@ -1838,10 +1838,18 @@ async function completarLogin(usuario) {
     // Agregar personal del plan padrino que no tiene registro
     const personal = [];
     datosGlobales.planPadrino.forEach(p => {
-        // FILTRAR: Solo incluir personal ACTIVO y sin novedad activa
-        if (p.ESTADO !== 'ACTIVO' || tieneNovedadActiva(p.CEDULA, fecha)) {
-            return;
-        }
+    // NUEVO FILTRO: Solo verificar estado ACTIVO y novedad temporal activa
+    // Ya NO verificar columnas R/S de BASE
+    const tieneIncapacidadActiva = tieneNovedadActiva(p.CEDULA, fecha);
+    
+    if (p.ESTADO !== 'ACTIVO') {
+        return; // Solo filtrar por estado ACTIVO/INACTIVO de BASE
+    }
+    
+    // Si tiene novedad activa según registros de asistencia, NO agregarlo a la lista
+    if (tieneIncapacidadActiva) {
+        return;
+    }
         
         if (asistenciaMap.has(p.CEDULA)) {
             personal.push(asistenciaMap.get(p.CEDULA));
@@ -1860,9 +1868,15 @@ async function completarLogin(usuario) {
         }
 
 // Agregar auxiliares (también verificar novedades Y estado)
+// Agregar auxiliares (también verificar novedades Y estado)
 p.auxiliares.forEach(aux => {
-    // FILTRAR: Verificar estado y novedad activa del auxiliar
-    if (aux.estado !== 'ACTIVO' || tieneNovedadActiva(aux.cedula, fecha)) {
+    const tieneIncapacidadActiva = tieneNovedadActiva(aux.cedula, fecha);
+    
+    if (aux.estado !== 'ACTIVO') {
+        return;
+    }
+    
+    if (tieneIncapacidadActiva) {
         return;
     }
     
@@ -2641,9 +2655,18 @@ document.getElementById('btnGuardarPersonalTemporal').addEventListener('click', 
     try {
         console.log('Actualizando estado en BASE:', cedula, tipoNovedad);
         
+        // NUEVO: Solo actualizar BASE para novedades PERMANENTES
+        const novedadesTemporales = ['INCAPACIDAD / EPS', 'VACACIONES', 'CALAMIDAD / LUTO', 'PERMISO'];
+        
+        if (novedadesTemporales.includes(tipoNovedad)) {
+            console.log('⚠️ Novedad temporal - NO se actualiza BASE (solo registros de asistencia)');
+            return; // NO modificar BASE para novedades temporales
+        }
+        
+        // Solo para novedades permanentes (ej: RENUNCIA, DESPIDO, etc)
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
-            range: `${CONFIG.HOJA_PLAN}!A:S`, // CAMBIAR a columna S
+            range: `${CONFIG.HOJA_PLAN}!A:S`,
         });
 
         const rows = response.result.values || [];
@@ -2653,18 +2676,15 @@ document.getElementById('btnGuardarPersonalTemporal').addEventListener('click', 
             const cedulaTecnico = rows[i][0]?.toString().trim();
             const cedulaAux = rows[i][6]?.toString().trim();
             
-            // Asegurar que la fila tenga 19 columnas (hasta S)
             while (rows[i].length < 19) {
                 rows[i].push('');
             }
             
-            // Actualizar si coincide con técnico
             if (cedulaTecnico === cedula) {
                 rows[i][17] = tipoNovedad; // Columna R para técnico
                 filasActualizadas++;
             }
             
-            // Actualizar si coincide con auxiliar
             if (cedulaAux === cedula) {
                 rows[i][18] = tipoNovedad; // Columna S para auxiliar
                 filasActualizadas++;
@@ -2674,7 +2694,7 @@ document.getElementById('btnGuardarPersonalTemporal').addEventListener('click', 
         if (filasActualizadas > 0) {
             await gapi.client.sheets.spreadsheets.values.update({
                 spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: `${CONFIG.HOJA_PLAN}!A1:S${rows.length}`, // CAMBIAR a columna S
+                range: `${CONFIG.HOJA_PLAN}!A1:S${rows.length}`,
                 valueInputOption: 'RAW',
                 resource: { values: rows }
             });
