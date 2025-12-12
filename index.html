@@ -1803,99 +1803,110 @@ async function completarLogin(usuario) {
             }
         }
 
-        function procesarAsistencia(rows, fecha) {
+function procesarAsistencia(rows, fecha) {
     const asistenciaMap = new Map();
-    
+
     // AGREGAR: Guardar todos los registros para verificar novedades
     datosGlobales.asistenciaCompleta = rows;
-    
+
     // Cargar registros existentes del día
     if (rows.length > 1) {
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             const fechaReg = row[0];
             const cedula = row[1]?.toString().trim();
-            
+
             if (fechaReg === fecha && cedula) {
-    asistenciaMap.set(cedula, {
-        CEDULA: cedula,
-        NOMBRE: row[2] || '',
-        CARGO: row[3] || '',
-        SUPERVISOR: row[4] || '',
-        CIUDAD: row[5] || '',
-        ESTADO: row[6] || 'NO_ASISTE',
-        HORA_ENTRADA: row[7] || '',
-        TIPO_NOVEDAD: row[8] || '',
-        OBSERVACIONES: row[9] || '',
-        SUPERVISOR_RESPALDO: row[10] || '', // Columna K
-        DIAS_NOVEDAD: row[11] || '', // NUEVO: Columna L
-        FECHA_INICIO_INCAPACIDAD: row[12] || '' // NUEVO: Columna M
-    });
-}
+                asistenciaMap.set(cedula, {
+                    CEDULA: cedula,
+                    NOMBRE: row[2] || '',
+                    CARGO: row[3] || '',
+                    SUPERVISOR: row[4] || '',
+                    CIUDAD: row[5] || '',
+                    ESTADO: row[6] || 'NO_ASISTE',
+                    HORA_ENTRADA: row[7] || '',
+                    TIPO_NOVEDAD: row[8] || '',
+                    OBSERVACIONES: row[9] || '',
+                    SUPERVISOR_RESPALDO: row[10] || '',
+                    DIAS_NOVEDAD: row[11] || '',
+                    FECHA_INICIO_INCAPACIDAD: row[12] || ''
+                });
+            }
         }
     }
 
-    // Agregar personal del plan padrino que no tiene registro
+    // Agregar personal del plan padrino
     const personal = [];
     datosGlobales.planPadrino.forEach(p => {
-    // NUEVO FILTRO: Solo verificar estado ACTIVO y novedad temporal activa
-    // Ya NO verificar columnas R/S de BASE
-    const tieneIncapacidadActiva = tieneNovedadActiva(p.CEDULA, fecha);
-    
-    if (p.ESTADO !== 'ACTIVO') {
-        return; // Solo filtrar por estado ACTIVO/INACTIVO de BASE
-    }
-    
-    // Si tiene novedad activa según registros de asistencia, NO agregarlo a la lista
-    if (tieneIncapacidadActiva) {
-        return;
-    }
+        // --- MODIFICACIÓN: SE ELIMINARON LOS FILTROS QUE OCULTABAN AL PERSONAL ---
         
+        // 1. Ya no ocultamos si el estado no es activo (para ver retirados)
+        // if (p.ESTADO !== 'ACTIVO') { return; } 
+
+        // 2. Ya no ocultamos si tienen novedad activa (para ver incapacitados)
+        // const tieneIncapacidadActiva = tieneNovedadActiva(p.CEDULA, fecha);
+        // if (tieneIncapacidadActiva) { return; }
+
         if (asistenciaMap.has(p.CEDULA)) {
+            // Si ya tienen registro (incluyendo incapacidades futuras ya guardadas), mostrar eso
             personal.push(asistenciaMap.get(p.CEDULA));
         } else {
+            // Si no tienen registro hoy, creamos uno por defecto
+            // Si en la base dice RETIRO, lo ponemos como estado para que no salga "NO_ASISTE"
+            let estadoPorDefecto = 'NO_ASISTE';
+            let observaciones = '';
+            
+            if (p.ESTADO !== 'ACTIVO') {
+                 estadoPorDefecto = 'NOVEDAD'; // O el estado que prefieras para que destaque
+                 observaciones = `Estado en Base: ${p.ESTADO}`;
+            }
+
             personal.push({
                 CEDULA: p.CEDULA,
                 NOMBRE: p.NOMBRE,
                 CARGO: p.CARGO,
                 SUPERVISOR: p.SUPERVISOR,
                 CIUDAD: p.CIUDAD,
-                ESTADO: 'NO_ASISTE',
+                ESTADO: estadoPorDefecto,
                 HORA_ENTRADA: '',
-                TIPO_NOVEDAD: '',
-                OBSERVACIONES: ''
+                TIPO_NOVEDAD: p.ESTADO !== 'ACTIVO' ? p.ESTADO : '', // Mostrar el tipo de retiro si aplica
+                OBSERVACIONES: observaciones
             });
         }
 
-// Agregar auxiliares (también verificar novedades Y estado)
-// Agregar auxiliares (también verificar novedades Y estado)
-p.auxiliares.forEach(aux => {
-    const tieneIncapacidadActiva = tieneNovedadActiva(aux.cedula, fecha);
-    
-    if (aux.estado !== 'ACTIVO') {
-        return;
-    }
-    
-    if (tieneIncapacidadActiva) {
-        return;
-    }
-    
-    if (asistenciaMap.has(aux.cedula)) {
-        personal.push(asistenciaMap.get(aux.cedula));
-    } else {
-        personal.push({
-            CEDULA: aux.cedula,
-            NOMBRE: aux.nombre,
-            CARGO: 'AUXILIAR',
-            SUPERVISOR: p.SUPERVISOR,
-            CIUDAD: p.CIUDAD,
-            ESTADO: 'NO_ASISTE',
-            HORA_ENTRADA: '',
-            TIPO_NOVEDAD: '',
-            OBSERVACIONES: ''
+        // Agregar auxiliares (Aplicando la misma lógica de no filtrar)
+        p.auxiliares.forEach(aux => {
+            // 1. Ya no ocultamos auxiliares inactivos
+            // if (aux.estado !== 'ACTIVO') { return; }
+            
+            // 2. Ya no ocultamos auxiliares incapacitados
+            // const tieneIncapacidadActiva = tieneNovedadActiva(aux.cedula, fecha);
+            // if (tieneIncapacidadActiva) { return; }
+
+            if (asistenciaMap.has(aux.cedula)) {
+                personal.push(asistenciaMap.get(aux.cedula));
+            } else {
+                let estadoPorDefectoAux = 'NO_ASISTE';
+                let observacionesAux = '';
+
+                if (aux.estado !== 'ACTIVO') {
+                    estadoPorDefectoAux = 'NOVEDAD';
+                    observacionesAux = `Estado en Base: ${aux.estado}`;
+                }
+
+                personal.push({
+                    CEDULA: aux.cedula,
+                    NOMBRE: aux.nombre,
+                    CARGO: 'AUXILIAR',
+                    SUPERVISOR: p.SUPERVISOR,
+                    CIUDAD: p.CIUDAD,
+                    ESTADO: estadoPorDefectoAux,
+                    HORA_ENTRADA: '',
+                    TIPO_NOVEDAD: aux.estado !== 'ACTIVO' ? aux.estado : '',
+                    OBSERVACIONES: observacionesAux
+                });
+            }
         });
-    }
-});
     });
 
     return personal;
